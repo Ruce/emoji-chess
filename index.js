@@ -18,7 +18,7 @@ const client = new Client({
 	}
 });
 
-const messageUrl = 'https://graph.facebook.com/v12.0/me/messages' + new URLSearchParams({access_token: process.env.PAGE_ACCESS_TOKEN})
+const messageUrl = 'https://graph.facebook.com/v12.0/me/messages?' + new URLSearchParams({access_token: process.env.PAGE_ACCESS_TOKEN})
 
 // Example POST method implementation:
 async function postData(url = '', data = {}) {
@@ -63,7 +63,6 @@ app.post('/webhook', (req, res) => {
 				}
 			}
 
-			console.log(messageUrl);
 			postData(messageUrl, message_body)
 				.then(data => {
 					console.log(data); // JSON data parsed by `data.json()` call
