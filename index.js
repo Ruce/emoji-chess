@@ -4,9 +4,9 @@
 const
   express = require('express'),
   bodyParser = require('body-parser'),
-  app = express().use(bodyParser.json()), // creates express http server
-  Client = require('pg');
+  app = express().use(bodyParser.json()); // creates express http server
 
+const { Client } = require('pg');
 // Connect to the PostgreSQL database
 const client = new Client({
   connectionString: process.env.DATABASE_URL,
