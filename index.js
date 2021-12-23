@@ -63,6 +63,7 @@ app.post('/webhook', (req, res) => {
 				}
 			}
 
+			console.log(messageUrl);
 			postData(messageUrl, message_body)
 				.then(data => {
 					console.log(data); // JSON data parsed by `data.json()` call
