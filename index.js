@@ -1,11 +1,10 @@
 'use strict';
 
 // Imports dependencies and set up http server
-import fetch from 'node-fetch';
-
 const
 	express = require('express'),
 	bodyParser = require('body-parser'),
+	fetch = require('node-fetch'),
 	app = express().use(bodyParser.json()); // creates express http server
 
 const { Client } = require('pg');
