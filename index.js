@@ -4,7 +4,17 @@
 const
   express = require('express'),
   bodyParser = require('body-parser'),
-  app = express().use(bodyParser.json()); // creates express http server
+  app = express().use(bodyParser.json()), // creates express http server
+  Client = require('pg');
+
+// Connect to the PostgreSQL database
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
 
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 80, () => console.log('webhook is listening'));
@@ -16,6 +26,7 @@ app.post('/webhook', (req, res) => {
 
   // Checks this is an event from a page subscription
   if (body.object === 'page') {
+	
 
     // Iterates over each entry - there may be multiple if batched
     body.entry.forEach(function(entry) {
@@ -24,6 +35,18 @@ app.post('/webhook', (req, res) => {
       // will only ever contain one message, so we get index 0
       let webhook_event = entry.messaging[0];
       console.log(webhook_event);
+	  
+	  let sender_psid = webhook_event.sender.id;
+	  console.log('Sender PSID: ' + sender_psid);
+	  
+	  client.connect();
+	  client.query('SELECT * FROM messages;', (err, res) => {
+		if (err) throw err;
+		for (let row of res.rows) {
+		  console.log(JSON.stringify(row));
+		}
+		client.end();
+	  });
     });
 
     // Returns a '200 OK' response to all requests
