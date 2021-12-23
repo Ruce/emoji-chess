@@ -52,7 +52,7 @@ app.post('/webhook', (req, res) => {
 			let sender_psid = webhook_event.sender.id;
 			console.log('Sender PSID: ' + sender_psid);
 			
-			message_body = {
+			let message_body = {
 				messaging_type: "RESPONSE",
 				recipient: {
 					id: sender_psid
