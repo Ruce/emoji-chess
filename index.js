@@ -53,31 +53,31 @@ app.post('/webhook', (req, res) => {
 			let sender_psid = webhook_event.sender.id;
 			console.log('Sender PSID: ' + sender_psid);
 			
-			let result = "hello";
 			client.connect();
 			client.query('SELECT * FROM messages;', (err, res) => {
 				if (err) throw err;
+				
+				let result = "hello";
 				for (let row of res.rows) {
 					result = String(row.sender_id);
 				}
 				client.end();
-			});
-			
-			let message_body = {
-				messaging_type: "RESPONSE",
-				recipient: {
-					id: sender_psid
-				},
-				message: {
-					text: result
+				
+				let message_body = {
+					messaging_type: "RESPONSE",
+					recipient: {
+						id: sender_psid
+					},
+					message: {
+						text: result
+					}
 				}
-			}
 
-			postData(messageUrl, message_body)
-				.then(data => {
-					console.log(data); // JSON data parsed by `data.json()` call
-				});
-			
+				postData(messageUrl, message_body)
+					.then(data => {
+						console.log(data); // JSON data parsed by `data.json()` call
+					});
+			});
 		});
 
 		// Returns a '200 OK' response to all requests
