@@ -53,12 +53,12 @@ app.post('/webhook', (req, res) => {
 			let sender_psid = webhook_event.sender.id;
 			console.log('Sender PSID: ' + sender_psid);
 			
-			let result = "";
+			let result = "hello";
 			client.connect();
 			client.query('SELECT * FROM messages;', (err, res) => {
 				if (err) throw err;
 				for (let row of res.rows) {
-					result = row.sender_id;
+					console.log(row.sender_id);
 				}
 				client.end();
 			});
