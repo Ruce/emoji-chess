@@ -58,7 +58,7 @@ app.post('/webhook', (req, res) => {
 			client.query('SELECT * FROM messages;', (err, res) => {
 				if (err) throw err;
 				for (let row of res.rows) {
-					console.log(row.sender_id);
+					result = String(row.sender_id);
 				}
 				client.end();
 			});
