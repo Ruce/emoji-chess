@@ -16,7 +16,7 @@ const messageUrl = 'https://graph.facebook.com/v12.0/me/messages?' + new URLSear
 const symbols = {
 	pieces: {
 		w: {
-			p: "P",
+			p: "🕯",
 			n: "N",
 			b: "B",
 			r: "R",
@@ -35,8 +35,8 @@ const symbols = {
 	board: {
 		rank: ["8", "7", "6", "5", "4", "3", "2", "1"],
 		file: ["a", "b", "c", "d", "e", "f", "g", "h"],
-		lightTile: "-",
-		darkTile: "*",
+		lightTile: "⬜",
+		darkTile: "⬛",
 		origin: "X"
 	}
 }
