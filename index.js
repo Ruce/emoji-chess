@@ -79,10 +79,10 @@ function outputBoard(board, isWhite = true) {
 	
 	let output = rows.join("\n");
 	if (isWhite) {
-		xAxis = symbols.board.origin + symbols.board.file.join(""); // Add file indicators
+		let xAxis = symbols.board.origin + symbols.board.file.join(""); // Add file indicators
 		output += "\n" + xAxis;
 	} else {
-		xAxis = symbols.board.origin + symbols.board.file.slice().reverse().join(""); // Add file indicators
+		let xAxis = symbols.board.origin + symbols.board.file.slice().reverse().join(""); // Add file indicators
 		output += "\n" + xAxis;
 	}
 	return output;
