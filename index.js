@@ -9,6 +9,7 @@ const
 
 const { Client } = require('pg');
 const { URLSearchParams } = require('url');
+const { Chess } = require('chess.js')
 
 // Connect to the PostgreSQL database
 const client = new Client({
@@ -32,6 +33,39 @@ async function postData(url = '', data = {}) {
 	return response.json(); // parses JSON response into native JavaScript objects
 }
 
+async function newGame(sender_id) {
+	client.connect();
+}
+
+async function makeMove(sender_id, move) {
+	client.connect();
+	
+	let fen;
+	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
+	try {
+		const res = await client.query(select, [sender_id]);
+		fen = res.rows[0].fen;
+		console.log('Old fen: ' + fen);
+	} catch (err) {
+		throw err;
+	}
+	
+	const chess = new Chess(fen);
+	chess.move(move);
+	let new_fen = chess.fen();
+	
+	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
+	try {
+		const res = await client.query(update, [new_fen, sender_id]);
+		console.log('New fen: ' + res.rows[0].fen);
+	} catch (err) {
+		throw err;
+	}
+	
+	client.end();
+	return chess.board();
+}
+
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 80, () => console.log('webhook is listening'));
 
@@ -51,28 +85,20 @@ app.post('/webhook', (req, res) => {
 			console.log(webhook_event);
 		
 			let sender_psid = webhook_event.sender.id;
+			let message = webhook_event.message.text;
 			console.log('Sender PSID: ' + sender_psid);
 			
-			client.connect();
-			client.query('SELECT * FROM messages;', (err, res) => {
-				if (err) throw err;
-				
-				let result = "hello";
-				for (let row of res.rows) {
-					result = String(row.sender_id);
-				}
-				client.end();
-				
+			makeMove(sender_psid, message, (board) => {
 				let message_body = {
 					messaging_type: "RESPONSE",
 					recipient: {
 						id: sender_psid
 					},
 					message: {
-						text: result
+						text: board
 					}
 				}
-
+				
 				postData(messageUrl, message_body)
 					.then(data => {
 						console.log(data); // JSON data parsed by `data.json()` call
