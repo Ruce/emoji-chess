@@ -11,14 +11,6 @@ const { Client } = require('pg');
 const { URLSearchParams } = require('url');
 const { Chess } = require('chess.js')
 
-// Connect to the PostgreSQL database
-const client = new Client({
-	connectionString: process.env.DATABASE_URL,
-	ssl: {
-		rejectUnauthorized: false
-	}
-});
-
 const messageUrl = 'https://graph.facebook.com/v12.0/me/messages?' + new URLSearchParams({access_token: process.env.PAGE_ACCESS_TOKEN})
 
 // Example POST method implementation:
@@ -33,12 +25,25 @@ async function postData(url = '', data = {}) {
 	return response.json(); // parses JSON response into native JavaScript objects
 }
 
+async function createClient() {
+	// Creates a new client and connects to the PostgreSQL database
+	const client = new Client({
+		connectionString: process.env.DATABASE_URL,
+		ssl: {
+			rejectUnauthorized: false
+		}
+	});
+	await client.connect();
+	return client;
+}
+
 async function newGame(sender_id) {
-	client.connect();
+	// Connect to the PostgreSQL database
+	const client = await createClient();
 }
 
 async function makeMove(sender_id, move) {
-	await client.connect();
+	const client = await createClient();
 	
 	let fen;
 	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
