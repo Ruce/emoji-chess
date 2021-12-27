@@ -89,6 +89,8 @@ app.post('/webhook', (req, res) => {
 			console.log('Sender PSID: ' + sender_psid);
 			
 			makeMove(sender_psid, message, (board) => {
+				console.log(board);
+				
 				let message_body = {
 					messaging_type: "RESPONSE",
 					recipient: {
