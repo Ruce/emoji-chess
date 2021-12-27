@@ -42,25 +42,17 @@ async function makeMove(sender_id, move) {
 	
 	let fen;
 	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
-	try {
-		const res = await client.query(select, [sender_id]);
-		fen = res.rows[0].fen;
-		console.log('Old fen: ' + fen);
-	} catch (err) {
-		throw err;
-	}
+	const res = await client.query(select, [sender_id]);
+	fen = res.rows[0].fen;
+	console.log('Old fen: ' + fen);
 	
 	const chess = new Chess(fen);
 	chess.move(move);
 	let new_fen = chess.fen();
 	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-	try {
-		const res = await client.query(update, [new_fen, sender_id]);
-		console.log('New fen: ' + res.rows[0].fen);
-	} catch (err) {
-		throw err;
-	}
+	const res = await client.query(update, [new_fen, sender_id]);
+	console.log('New fen: ' + res.rows[0].fen);
 	
 	client.end();
 	return chess.board();
@@ -88,24 +80,26 @@ app.post('/webhook', (req, res) => {
 			let message = webhook_event.message.text;
 			console.log('Sender PSID: ' + sender_psid);
 			
-			makeMove(sender_psid, message, (board) => {
-				console.log(board);
-				
-				let message_body = {
-					messaging_type: "RESPONSE",
-					recipient: {
-						id: sender_psid
-					},
-					message: {
-						text: board
+			makeMove(sender_psid, message)
+				.then(board => {
+					console.log(board);
+					
+					let message_body = {
+						messaging_type: "RESPONSE",
+						recipient: {
+							id: sender_psid
+						},
+						message: {
+							text: board
+						}
 					}
-				}
-				
-				postData(messageUrl, message_body)
-					.then(data => {
-						console.log(data); // JSON data parsed by `data.json()` call
-					});
-			});
+					
+					postData(messageUrl, message_body)
+						.then(data => {
+							console.log(data); // JSON data parsed by `data.json()` call
+						});
+				})
+				.catch(e => console.log(e));
 		});
 
 		// Returns a '200 OK' response to all requests
