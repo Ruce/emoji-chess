@@ -37,7 +37,8 @@ const symbols = {
 		file: ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭"],
 		lightTile: "◽",
 		darkTile: "◾",
-		origin: "🏁"
+		origin: "🏁",
+		zeroWidth: "​"
 	}
 }
 
@@ -79,10 +80,10 @@ function outputBoard(board, isWhite = true) {
 	
 	let output = rows.join("\n");
 	if (isWhite) {
-		let xAxis = symbols.board.origin + symbols.board.file.join(""); // Add file indicators
+		let xAxis = symbols.board.origin + symbols.board.file.join(symbols.board.zeroWidth); // Add file indicators
 		output += "\n" + xAxis;
 	} else {
-		let xAxis = symbols.board.origin + symbols.board.file.slice().reverse().join(""); // Add file indicators
+		let xAxis = symbols.board.origin + symbols.board.file.slice().reverse().join(symbols.board.zeroWidth); // Add file indicators
 		output += "\n" + xAxis;
 	}
 	return output;
@@ -170,7 +171,7 @@ app.post('/webhook', (req, res) => {
 							id: sender_psid
 						},
 						message: {
-							text: board
+							text: "Board:\n" + board
 						}
 					}
 					
