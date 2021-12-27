@@ -38,7 +38,7 @@ async function newGame(sender_id) {
 }
 
 async function makeMove(sender_id, move) {
-	client.connect();
+	await client.connect();
 	
 	let fen;
 	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
@@ -54,7 +54,7 @@ async function makeMove(sender_id, move) {
 	const update_res = await client.query(update, [new_fen, sender_id]);
 	console.log('New fen: ' + update_res.rows[0].fen);
 	
-	client.end();
+	await client.end();
 	return chess.ascii();
 }
 
