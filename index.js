@@ -17,27 +17,27 @@ const symbols = {
 	pieces: {
 		w: {
 			p: "🕯",
-			n: "N",
-			b: "B",
-			r: "R",
-			q: "Q",
-			k: "K"
+			n: "🦄",
+			b: "🏃",
+			r: "🏰",
+			q: "👸",
+			k: "🤴"
 		},
 		b: {
-			p: "p",
-			n: "n",
-			b: "b",
-			r: "r",
-			q: "q",
-			k: "k"
+			p: "♟",
+			n: "🐴",
+			b: "🏃",
+			r: "🕋",
+			q: "👸",
+			k: "🤴"
 		}
 	},
 	board: {
-		rank: ["8", "7", "6", "5", "4", "3", "2", "1"],
-		file: ["a", "b", "c", "d", "e", "f", "g", "h"],
-		lightTile: "⬜",
-		darkTile: "⬛",
-		origin: "X"
+		rank: ["8️⃣", "7️⃣", "6️⃣", "5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"],
+		file: ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭"],
+		lightTile: "◽",
+		darkTile: "◾",
+		origin: "🏁"
 	}
 }
 
@@ -68,12 +68,12 @@ function outputBoard(board, isWhite = true) {
 		
 		if (isWhite) {
 			row.unshift(symbols.board.rank[i]); // Add rank number indicators
-			rows.push(row.join());
+			rows.push(row.join(""));
 		} else {
 			// From black's perspective, horizontally mirror rows and build board from bottom up
 			row.reverse()
 			row.unshift(symbols.board.rank[i]); // Add rank number indicators
-			rows.unshift(row.join());
+			rows.unshift(row.join(""));
 		}
 	}
 	
