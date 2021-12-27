@@ -13,6 +13,81 @@ const { Chess } = require('chess.js')
 
 const messageUrl = 'https://graph.facebook.com/v12.0/me/messages?' + new URLSearchParams({access_token: process.env.PAGE_ACCESS_TOKEN})
 
+const symbols = {
+	pieces: {
+		w: {
+			p: "P",
+			n: "N",
+			b: "B",
+			r: "R",
+			q: "Q",
+			k: "K"
+		},
+		b: {
+			p: "p",
+			n: "n",
+			b: "b",
+			r: "r",
+			q: "q",
+			k: "k"
+		}
+	},
+	board: {
+		rank: ["8", "7", "6", "5", "4", "3", "2", "1"],
+		file: ["a", "b", "c", "d", "e", "f", "g", "h"],
+		lightTile: "-",
+		darkTile: "*",
+		origin: "X"
+	}
+}
+
+function outputBoard(board, isWhite = true) {
+	let rows = [];
+	
+	// Iterate through tiles on the board (2D array)
+	// Starts at the "top left" from white's perspective, i.e. 8th -> 1st rank and 'a' -> 'h' file
+	for (let i = 0; i < 8; i++) {
+		let row = [];
+		for (let j = 0; j < 8; j++) {
+			let piece = board[i][j];
+			if (piece == null) {
+				// Empty tile - work out if it is a light or dark square
+				// Counting from the "top left":
+				// (Even rank && even file) || (Odd rank && odd file) == light square
+				// Else == dark square
+				if ((i % 2) ^ (j % 2)) {
+					row.push(symbols.board.darkTile);
+				}
+				else {
+					row.push(symbols.board.lightTile);
+				}
+			} else {
+				row.push(symbols.pieces[piece.color][piece.type]);
+			}
+		}
+		
+		if (isWhite) {
+			row.unshift(symbols.board.rank[i]); // Add rank number indicators
+			rows.push(row.join());
+		} else {
+			// From black's perspective, horizontally mirror rows and build board from bottom up
+			row.reverse()
+			row.unshift(symbols.board.rank[i]); // Add rank number indicators
+			rows.unshift(row.join());
+		}
+	}
+	
+	let output = rows.join("\n");
+	if (isWhite) {
+		xAxis = symbols.board.origin + symbols.board.file.join(""); // Add file indicators
+		output += "\n" + xAxis;
+	} else {
+		xAxis = symbols.board.origin + symbols.board.file.slice().reverse().join(""); // Add file indicators
+		output += "\n" + xAxis;
+	}
+	return output;
+}
+
 // Example POST method implementation:
 async function postData(url = '', data = {}) {
 	const response = await fetch(url, {
@@ -60,7 +135,7 @@ async function makeMove(sender_id, move) {
 	console.log('New fen: ' + update_res.rows[0].fen);
 	
 	await client.end();
-	return chess.ascii();
+	return outputBoard(chess.board());
 }
 
 // Sets server port and logs message on success
