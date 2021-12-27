@@ -55,7 +55,7 @@ async function makeMove(sender_id, move) {
 	console.log('New fen: ' + update_res.rows[0].fen);
 	
 	client.end();
-	return chess.board();
+	return chess.ascii();
 }
 
 // Sets server port and logs message on success
