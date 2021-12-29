@@ -101,6 +101,23 @@ async function postData(url = '', data = {}) {
 	return response.json(); // parses JSON response into native JavaScript objects
 }
 
+function sendResponse(senderId, message) {
+	let messageBody = {
+		messaging_type: "RESPONSE",
+		recipient: {
+			id: senderId
+		},
+		message: {
+			text: message
+		}
+	}
+	
+	postData(messageUrl, messageBody)
+		.then(data => {
+			console.log(data); // JSON data parsed by `data.json()` call
+		});
+}
+
 async function createClient() {
 	// Creates a new client and connects to the PostgreSQL database
 	const client = new Client({
@@ -113,27 +130,36 @@ async function createClient() {
 	return client;
 }
 
-async function newGame(sender_id) {
+async function newGame(senderId) {
 	// Connect to the PostgreSQL database
 	const client = await createClient();
+	
+	const chess = new Chess();
+	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
+	const updateRes = await client.query(update, [chess.fen(), senderId]);
+	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
+	
+	
+	await client.end();
+	return outputBoard(chess.board());
 }
 
-async function makeMove(sender_id, move) {
+async function makeMove(senderId, move) {
 	const client = await createClient();
 	
 	let fen;
 	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
-	const select_res = await client.query(select, [sender_id]);
-	fen = select_res.rows[0].fen;
+	const selectRes = await client.query(select, [senderId]);
+	fen = selectRes.rows[0].fen;
 	console.log('Old fen: ' + fen);
 	
 	const chess = new Chess(fen);
 	chess.move(move);
-	let new_fen = chess.fen();
+	let newFen = chess.fen();
 	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-	const update_res = await client.query(update, [new_fen, sender_id]);
-	console.log('New fen: ' + update_res.rows[0].fen);
+	const updateRes = await client.query(update, [newFen, senderId]);
+	console.log('New fen: ' + updateRes.rows[0].fen);
 	
 	await client.end();
 	return outputBoard(chess.board());
@@ -161,26 +187,20 @@ app.post('/webhook', (req, res) => {
 			let message = webhook_event.message.text;
 			console.log('Sender PSID: ' + sender_psid);
 			
-			makeMove(sender_psid, message)
-				.then(board => {
-					console.log(board);
-					
-					let message_body = {
-						messaging_type: "RESPONSE",
-						recipient: {
-							id: sender_psid
-						},
-						message: {
-							text: "Board:\n" + board
-						}
-					}
-					
-					postData(messageUrl, message_body)
-						.then(data => {
-							console.log(data); // JSON data parsed by `data.json()` call
-						});
-				})
-				.catch(e => console.log(e));
+			if (message.toLowerCase() === 'new game') {
+				newGame(sender_psid)
+					.then(board => {
+						sendResponse(sender_psid, "New game:\n" + board)
+					})
+					.catch(e => console.log(e));
+			} else {
+				makeMove(sender_psid, message)
+					.then(board => {
+						console.log(board);
+						sendResponse(sender_psid, "Board:\n" + board)
+					})
+					.catch(e => console.log(e));
+			}
 		});
 
 		// Returns a '200 OK' response to all requests
