@@ -198,7 +198,7 @@ app.post('/webhook', (req, res) => {
 					})
 					.catch(e => console.log(e));
 			} else if (message === 'test') {
-				let quickReply = [{ content_type:"text", title:"♟(pawn)\r\nNew line", payload:"Test" }];
+				let quickReply = [{ content_type:"text", title:"♟(pawn)\r\n8️⃣🗿🐴🕴◾🤵◾🐴🗿\r\n7️⃣♟♟♟◽◾♟◾♟\r\n6️⃣◽◾◽◾◽◾♟🕴\r\n5️⃣◾◽◾🐣♟◽◾◽\r\n4️⃣◽◾◽◾◽◾◽◾\r\n3️⃣◾◽🦄◽◾🦄◾◽\r\n2️⃣🐣🐣🐣🐣◽🐣🐣🐣\r\n1️⃣🏰◽🏃👸🤴◽◾🏰\r\n🏁🇦​🇧​🇨​🇩​🇪​🇫​🇬​🇭", payload:"Test" }];
 				sendResponse(sender_psid, "Test", quickReply);
 			} else {
 				makeMove(sender_psid, message)
