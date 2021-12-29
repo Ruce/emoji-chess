@@ -101,7 +101,7 @@ async function postData(url = '', data = {}) {
 	return response.json(); // parses JSON response into native JavaScript objects
 }
 
-function sendResponse(senderId, message) {
+function sendResponse(senderId, message, quickReplies = null) {
 	let messageBody = {
 		messaging_type: "RESPONSE",
 		recipient: {
@@ -110,6 +110,10 @@ function sendResponse(senderId, message) {
 		message: {
 			text: message
 		}
+	}
+	
+	if (quickReplies !== null) {
+		messageBody.message.quick_replies = quickReplies;
 	}
 	
 	postData(messageUrl, messageBody)
@@ -190,14 +194,17 @@ app.post('/webhook', (req, res) => {
 			if (message.toLowerCase() === 'new game') {
 				newGame(sender_psid)
 					.then(board => {
-						sendResponse(sender_psid, "New game:\n" + board)
+						sendResponse(sender_psid, "New game:\n" + board);
 					})
 					.catch(e => console.log(e));
+			} else if (message === 'test') {
+				let quickReply = { content_type:"text", title:"♟(pawn)\r\nNew line", payload:"Test" };
+				sendResponse(sender_psid, "Test", quickReply);
 			} else {
 				makeMove(sender_psid, message)
 					.then(board => {
 						console.log(board);
-						sendResponse(sender_psid, "Board:\n" + board)
+						sendResponse(sender_psid, "Board:\n" + board);
 					})
 					.catch(e => console.log(e));
 			}
