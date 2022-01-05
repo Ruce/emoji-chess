@@ -240,6 +240,8 @@ app.post('/webhook', (req, res) => {
 			// will only ever contain one message, so we get index 0
 			let webhook_event = entry.messaging[0];
 			console.log(webhook_event);
+			
+			engine.postMessage("d");
 		
 			let sender_psid = webhook_event.sender.id;
 			let message = webhook_event.message.text;
