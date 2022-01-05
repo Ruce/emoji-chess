@@ -50,6 +50,5 @@ function start() {
 	});
 
 	send("uci");
-	send("d");
 }
 
