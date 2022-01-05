@@ -149,7 +149,7 @@ async function newGame(senderId) {
 	
 	
 	await client.end();
-	return outputBoard(chess.board());
+	return {fen: chess.fen(), board: outputBoard(chess.board())};
 }
 
 async function makeMove(senderId, move) {
@@ -165,15 +165,41 @@ async function makeMove(senderId, move) {
 	chess.move(move);
 	let newFen = chess.fen();
 	
-	engine.postMessage("position fen " + newFen);
-	engine.postMessage("go depth 10");
-	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
 	const updateRes = await client.query(update, [newFen, senderId]);
 	console.log('New fen: ' + updateRes.rows[0].fen);
 	
 	await client.end();
-	return outputBoard(chess.board());
+	return {fen: newFen, board: outputBoard(chess.board())};
+}
+
+var isEngineRunning = false;
+var engineProcessingSenderId;
+
+function startEngineMove(fen, senderId) {
+	if (!isEngineRunning) {
+		engine.postMessage("position fen " + fen);
+		engine.postMessage("go depth 10");
+		isEngineRunning = true;
+		engineProcessingSenderId = senderId;
+		return true;
+	} else {
+		// Engine currently analysing previous command
+		return false;
+	}
+}
+
+function postEngineMove(engineMove) {
+	if (isEngineRunning) {
+		makeMove(engineProcessingSenderId, engineMove)
+			.then(position => {
+				console.log(position.board);
+				sendResponse(engineProcessingSenderId, "Board:\n" + position.board);
+				
+				isEngineRunning = false;
+				engineProcessingSenderId = null;
+			})
+	}
 }
 
 var wasmPath = require.resolve("stockfish/src/stockfish.wasm");
@@ -196,14 +222,14 @@ if (typeof INIT_ENGINE === "function") {
 		Stockfish(mod).then(function (sf)
 		{
 			engine = sf;
-			start();
+			startEngine();
 		});
 	} catch (e) {
 		console.error(e);
 	}
 }
 
-function start() {
+function startEngine() {
 	function send(str) {
 		console.log("Sending: " + str)
 		engine.postMessage(str);
@@ -216,10 +242,11 @@ function start() {
 		
 		if (line.indexOf("uciok") > -1) {
 			//engine.terminate();
-
 			// Sets server port and logs message on success
 			app.listen(process.env.PORT || 80, () => console.log('webhook is listening on port ' + String(process.env.PORT)));
-
+		} else if (line.indexOf("bestmove") > -1) {
+			match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
+			postEngineMove({from: match[1], to: match[2], promotion: match[3]});
 		}
 	});
 
@@ -248,8 +275,8 @@ app.post('/webhook', (req, res) => {
 			
 			if (message.toLowerCase() === 'new game') {
 				newGame(sender_psid)
-					.then(board => {
-						sendResponse(sender_psid, "New game:\n" + board);
+					.then(position => {
+						sendResponse(sender_psid, "New game:\n" + position.board);
 					})
 					.catch(e => console.log(e));
 			} else if (message === 'test') {
@@ -257,9 +284,11 @@ app.post('/webhook', (req, res) => {
 				sendResponse(sender_psid, "Test", quickReply);
 			} else {
 				makeMove(sender_psid, message)
-					.then(board => {
-						console.log(board);
-						sendResponse(sender_psid, "Board:\n" + board);
+					.then(position => {
+						console.log(position.board);
+						sendResponse(sender_psid, "Board:\n" + position.board);
+						
+						startEngineMove(position.fen, sender_psid)
 					})
 					.catch(e => console.log(e));
 			}
