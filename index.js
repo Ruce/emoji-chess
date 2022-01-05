@@ -198,7 +198,7 @@ app.post('/webhook', (req, res) => {
 					})
 					.catch(e => console.log(e));
 			} else if (message === 'test') {
-				let quickReply = [{ content_type:"text", title:"♟(pawn)\r\n8️⃣🗿🐴🕴◾🤵◾🐴🗿\r\n7️⃣♟♟♟◽◾♟◾♟\r\n6️⃣◽◾◽◾◽◾♟🕴\r\n5️⃣◾◽◾🐣♟◽◾◽\r\n4️⃣◽◾◽◾◽◾◽◾\r\n3️⃣◾◽🦄◽◾🦄◾◽\r\n2️⃣🐣🐣🐣🐣◽🐣🐣🐣\r\n1️⃣🏰◽🏃👸🤴◽◾🏰\r\n🏁🇦​🇧​🇨​🇩​🇪​🇫​🇬​🇭", payload:"Test" }];
+				let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
 				sendResponse(sender_psid, "Test", quickReply);
 			} else {
 				makeMove(sender_psid, message)
@@ -246,3 +246,55 @@ app.get('/webhook', (req, res) => {
 		}
 	}
 });
+
+var Stockfish;
+var engine;
+
+var INIT_ENGINE = require("stockfish");
+
+var wasmPath = require.resolve("stockfish/src/stockfish.wasm");
+var mod = {
+	locateFile: function (path)
+	{
+		if (path.indexOf(".wasm") > -1) {
+			/// Set the path to the wasm binary.
+			return wasmPath;
+		} else {
+			/// Set path to worker (self + the worker hash)
+			return __filename;
+		}
+	},
+};
+
+if (typeof INIT_ENGINE === "function") {
+	var Stockfish = INIT_ENGINE();
+	try {
+		Stockfish(mod).then(function (sf)
+		{
+			engine = sf;
+			start();
+		});
+	} catch (e) {
+		console.error(e);
+	}
+}
+
+function start() {
+	function send(str) {
+		console.log("Sending: " + str)
+		engine.postMessage(str);
+	}
+
+	engine.addMessageListener(function onLog(line)
+    {
+        var match;
+        console.log("Line: " + line)
+		
+		if (line.indexOf("uciok") > -1) {
+			engine.terminate();
+		}
+	});
+
+	send("uci");
+}
+
