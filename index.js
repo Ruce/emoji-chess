@@ -214,7 +214,7 @@ function start() {
         console.log("Line: " + line)
 		
 		if (line.indexOf("uciok") > -1) {
-			engine.terminate();
+			//engine.terminate();
 
 			// Sets server port and logs message on success
 			app.listen(process.env.PORT || 80, () => console.log('webhook is listening on port ' + String(process.env.PORT)));
