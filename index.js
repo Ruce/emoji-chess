@@ -11,6 +11,10 @@ const { Client } = require('pg');
 const { URLSearchParams } = require('url');
 const { Chess } = require('chess.js')
 
+var Stockfish;
+var engine;
+var INIT_ENGINE = require("stockfish");
+
 const messageUrl = 'https://graph.facebook.com/v12.0/me/messages?' + new URLSearchParams({access_token: process.env.PAGE_ACCESS_TOKEN})
 
 const symbols = {
@@ -161,6 +165,9 @@ async function makeMove(senderId, move) {
 	chess.move(move);
 	let newFen = chess.fen();
 	
+	engine.postMessage("position fen " + newFen);
+	engine.postMessage("go depth 10");
+	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
 	const updateRes = await client.query(update, [newFen, senderId]);
 	console.log('New fen: ' + updateRes.rows[0].fen);
@@ -168,12 +175,6 @@ async function makeMove(senderId, move) {
 	await client.end();
 	return outputBoard(chess.board());
 }
-
-
-var Stockfish;
-var engine;
-
-var INIT_ENGINE = require("stockfish");
 
 var wasmPath = require.resolve("stockfish/src/stockfish.wasm");
 var mod = {
@@ -240,8 +241,6 @@ app.post('/webhook', (req, res) => {
 			// will only ever contain one message, so we get index 0
 			let webhook_event = entry.messaging[0];
 			console.log(webhook_event);
-			
-			engine.postMessage("uci");
 		
 			let sender_psid = webhook_event.sender.id;
 			let message = webhook_event.message.text;
