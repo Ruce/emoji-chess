@@ -241,7 +241,7 @@ app.post('/webhook', (req, res) => {
 			let webhook_event = entry.messaging[0];
 			console.log(webhook_event);
 			
-			engine.postMessage("d");
+			engine.postMessage("uci");
 		
 			let sender_psid = webhook_event.sender.id;
 			let message = webhook_event.message.text;
