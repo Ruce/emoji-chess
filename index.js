@@ -273,7 +273,7 @@ function chatController(message, senderId, payload = null) {
 				let quickReply = [];
 				Object.entries(botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
-				}
+				});
 				sendResponse(senderId, "Choose a difficulty:", quickReply);
 				break;
 			default:
