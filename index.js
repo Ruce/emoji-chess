@@ -191,13 +191,15 @@ function startEngineMove(fen, senderId) {
 	}
 }
 
-function postEngineMove(engineMove) {
+async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
+		await new Promise(r => setTimeout(r, 200));
+		
 		makeMove(engineProcessingSenderId, engineMove)
 			.then(result => {
 				if (result.valid) {
 					console.log(result.board);
-					sendResponse(engineProcessingSenderId, "Board:\n" + result.board);
+					sendResponse(engineProcessingSenderId, "Bot: " + engineMove + "\n" + result.board);
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
 					sendResponse(engineProcessingSenderId, "Error detected *beep boop*");
@@ -206,6 +208,9 @@ function postEngineMove(engineMove) {
 				isEngineRunning = false;
 				engineProcessingSenderId = null;
 			})
+		return true;
+	} else {
+		return false;
 	}
 }
 
