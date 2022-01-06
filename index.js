@@ -181,7 +181,7 @@ var engineProcessingSenderId;
 function startEngineMove(fen, senderId) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
-		engine.postMessage("go depth 5");
+		engine.postMessage("go depth 3");
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
 		return true;
