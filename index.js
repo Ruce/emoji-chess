@@ -217,7 +217,7 @@ async function postEngineMove(engineMove) {
 			.then(position => {
 				if (position.move != null) {
 					console.log(position.board);
-					sendResponse(senderId, "👶: " + position.move.san);
+					sendResponse(senderId, "👶 says: " + position.move.san);
 					sendResponse(senderId, "Move X (your turn)\n" + position.board);
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
@@ -243,6 +243,7 @@ function chatController(message, senderId) {
 		case 'test':
 			let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
 			sendResponse(senderId, "Test", quickReply);
+			break;
 		default:
 			makeMove(senderId, message)
 			.then(position => {
