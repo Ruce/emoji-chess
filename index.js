@@ -231,33 +231,42 @@ async function postEngineMove(engineMove) {
 	}
 }
 
-function chatController(message, senderId) {
-	switch(message.toLowerCase()) {
-		case 'new game':
-			newGame(senderId)
-			.then(position => {
-				sendResponse(senderId, "New game:\n" + position.board);
-			})
-			.catch(e => console.log(e));
-			break;
-		case 'test':
-			let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
-			sendResponse(senderId, "Test", quickReply);
-			break;
-		default:
-			makeMove(senderId, message)
-			.then(position => {
-				if (position.move != null) {
-					console.log(position.board);
-					sendResponse(senderId, "You:\n" + position.board);
-					
-					startEngineMove(position.fen, senderId);
-				} else {
-					console.log("Input move is invalid: " + message);
-					sendResponse(senderId, "Invalid move");
-				}
-			})
-			.catch(e => console.log(e));
+function chatController(message, senderId, payload = null) {
+	if (payload != null) {
+		switch(payload) {
+			case 'abc':
+				break;
+			default:
+				console.error("Unknown payload: " + payload);
+		}
+	} else {
+		switch(message.toLowerCase()) {
+			case 'new game':
+				newGame(senderId)
+				.then(position => {
+					sendResponse(senderId, "New game:\n" + position.board);
+				})
+				.catch(e => console.log(e));
+				break;
+			case 'test':
+				let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
+				sendResponse(senderId, "Test", quickReply);
+				break;
+			default:
+				makeMove(senderId, message)
+				.then(position => {
+					if (position.move != null) {
+						console.log(position.board);
+						sendResponse(senderId, "You:\n" + position.board);
+						
+						startEngineMove(position.fen, senderId);
+					} else {
+						console.log("Input move is invalid: " + message);
+						sendResponse(senderId, "Invalid move");
+					}
+				})
+				.catch(e => console.log(e));
+		}
 	}
 }
 
@@ -336,7 +345,10 @@ app.post('/webhook', (req, res) => {
 			
 				let sender_psid = webhook_event.sender.id;
 				let message = webhook_event.message.text;
-				chatController(message, sender_psid);
+				let payload;
+				if (webhook_event.message.quick_reply) {
+					payload = webhook_event.message.quick_reply.payload;
+				chatController(message, sender_psid, payload);
 			} catch(e) {
 				console.error(e);
 			}
