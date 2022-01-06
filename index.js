@@ -205,7 +205,7 @@ function startEngineMove(fen, senderId) {
 
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
-		//typingOn(senderId).then();
+		typingOn(engineProcessingSenderId);
 		await new Promise(r => setTimeout(r, 3000));
 		
 		makeMove(engineProcessingSenderId, engineMove)
