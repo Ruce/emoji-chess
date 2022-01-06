@@ -198,9 +198,9 @@ async function postEngineMove(engineMove) {
 		makeMove(engineProcessingSenderId, engineMove)
 			.then(position => {
 				if (position.move != null) {
-					console.log(result.board);
+					console.log(position.board);
 					sendResponse(engineProcessingSenderId, position.move.san);
-					sendResponse(engineProcessingSenderId, "Bot: \n" + result.board);
+					sendResponse(engineProcessingSenderId, "Bot: \n" + position.board);
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
 					sendResponse(engineProcessingSenderId, "Error detected *beep boop*");
