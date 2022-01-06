@@ -200,7 +200,6 @@ async function postEngineMove(engineMove) {
 				if (position.move != null) {
 					console.log(result.board);
 					sendResponse(engineProcessingSenderId, position.move.san);
-					await new Promise(r => setTimeout(r, 300));
 					sendResponse(engineProcessingSenderId, "Bot: \n" + result.board);
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
