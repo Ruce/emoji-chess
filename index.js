@@ -218,26 +218,26 @@ async function postEngineMove(engineMove) {
 function chatController(message, senderId) {
 	switch(message.toLowerCase()) {
 		case 'new game':
-			newGame(sender_psid)
+			newGame(senderId)
 			.then(result => {
-				sendResponse(sender_psid, "New game:\n" + result.board);
+				sendResponse(senderId, "New game:\n" + result.board);
 			})
 			.catch(e => console.log(e));
 			break;
 		case 'test':
 			let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
-			sendResponse(sender_psid, "Test", quickReply);
+			sendResponse(senderId, "Test", quickReply);
 		default:
-			makeMove(sender_psid, message)
+			makeMove(senderId, message)
 			.then(result => {
 				if (result.valid) {
 					console.log(result.board);
-					sendResponse(sender_psid, "You:\n" + result.board);
+					sendResponse(senderId, "You:\n" + result.board);
 					
-					startEngineMove(result.fen, sender_psid)
+					startEngineMove(result.fen, senderId)
 				} else {
 					console.log("Input move is invalid: " + message);
-					sendResponse(sender_psid, "Invalid move");
+					sendResponse(senderId, "Invalid move");
 				}
 			})
 			.catch(e => console.log(e));
