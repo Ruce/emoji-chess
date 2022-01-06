@@ -205,7 +205,7 @@ function startEngineMove(fen, senderId) {
 
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
-		await new Promise(r => setTimeout(r, 500));
+		await new Promise(r => setTimeout(r, 3000));
 		
 		makeMove(engineProcessingSenderId, engineMove)
 			.then(position => {
