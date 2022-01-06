@@ -193,7 +193,7 @@ var engineProcessingSenderId;
 function startEngineMove(fen, senderId) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
-		engine.postMessage("go depth 3");
+		engine.postMessage("go depth 2");
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
 		return true;
@@ -205,6 +205,7 @@ function startEngineMove(fen, senderId) {
 
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
+		typingOn(senderId);
 		await new Promise(r => setTimeout(r, 3000));
 		
 		makeMove(engineProcessingSenderId, engineMove)
@@ -247,7 +248,6 @@ function chatController(message, senderId) {
 					console.log(position.board);
 					sendResponse(senderId, "You:\n" + position.board);
 					
-					typingOn(senderId);
 					startEngineMove(position.fen, senderId);
 				} else {
 					console.log("Input move is invalid: " + message);
