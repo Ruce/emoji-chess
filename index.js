@@ -172,7 +172,7 @@ async function makeMove(senderId, move) {
 	}
 	
 	await client.end();
-	return {valid: moveResult != null, fen: newFen, board: outputBoard(chess.board())};
+	return {move: moveResult, fen: newFen, board: outputBoard(chess.board())};
 }
 
 var isEngineRunning = false;
@@ -193,12 +193,14 @@ function startEngineMove(fen, senderId) {
 
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
-		await new Promise(r => setTimeout(r, 200));
+		await new Promise(r => setTimeout(r, 300));
 		
 		makeMove(engineProcessingSenderId, engineMove)
-			.then(result => {
-				if (result.valid) {
+			.then(position => {
+				if (position.move != null) {
 					console.log(result.board);
+					sendResponse(engineProcessingSenderId, position.move.san);
+					await new Promise(r => setTimeout(r, 300));
 					sendResponse(engineProcessingSenderId, "Bot: \n" + result.board);
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
@@ -219,8 +221,8 @@ function chatController(message, senderId) {
 	switch(message.toLowerCase()) {
 		case 'new game':
 			newGame(senderId)
-			.then(result => {
-				sendResponse(senderId, "New game:\n" + result.board);
+			.then(position => {
+				sendResponse(senderId, "New game:\n" + position.board);
 			})
 			.catch(e => console.log(e));
 			break;
@@ -229,12 +231,12 @@ function chatController(message, senderId) {
 			sendResponse(senderId, "Test", quickReply);
 		default:
 			makeMove(senderId, message)
-			.then(result => {
-				if (result.valid) {
-					console.log(result.board);
-					sendResponse(senderId, "You:\n" + result.board);
+			.then(position => {
+				if (position.move != null) {
+					console.log(position.board);
+					sendResponse(senderId, "You:\n" + position.board);
 					
-					startEngineMove(result.fen, senderId)
+					startEngineMove(position.fen, senderId)
 				} else {
 					console.log("Input move is invalid: " + message);
 					sendResponse(senderId, "Invalid move");
@@ -299,7 +301,6 @@ function startEngine() {
 
 	send("uci");
 	send("setoption name Skill Level value 0");
-	send("d");
 }
 
 // Creates the endpoint for our webhook 
