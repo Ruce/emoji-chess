@@ -105,6 +105,18 @@ async function postData(url = '', data = {}) {
 	return response.json(); // parses JSON response into native JavaScript objects
 }
 
+async function typingOn(senderId) {
+	let body = {
+		recipient: {
+			id: senderId
+		},
+		sender_action: "typing_on"
+	};
+	
+	let response = await postData(messageUrl, body);
+	return response;
+}
+
 function sendResponse(senderId, message, quickReplies = null) {
 	let messageBody = {
 		messaging_type: "RESPONSE",
@@ -121,9 +133,9 @@ function sendResponse(senderId, message, quickReplies = null) {
 	}
 	
 	postData(messageUrl, messageBody)
-		.then(data => {
-			console.log(data); // JSON data parsed by `data.json()` call
-		});
+	.then(data => {
+		console.log(data); // JSON data parsed by `data.json()` call
+	});
 }
 
 async function createClient() {
@@ -193,7 +205,7 @@ function startEngineMove(fen, senderId) {
 
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
-		await new Promise(r => setTimeout(r, 300));
+		await new Promise(r => setTimeout(r, 500));
 		
 		makeMove(engineProcessingSenderId, engineMove)
 			.then(position => {
@@ -235,7 +247,8 @@ function chatController(message, senderId) {
 					console.log(position.board);
 					sendResponse(senderId, "You:\n" + position.board);
 					
-					startEngineMove(position.fen, senderId)
+					typingOn(senderId);
+					startEngineMove(position.fen, senderId);
 				} else {
 					console.log("Input move is invalid: " + message);
 					sendResponse(senderId, "Invalid move");
