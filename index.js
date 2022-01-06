@@ -199,7 +199,7 @@ async function postEngineMove(engineMove) {
 			.then(result => {
 				if (result.valid) {
 					console.log(result.board);
-					sendResponse(engineProcessingSenderId, "Bot: " + engineMove + "\n" + result.board);
+					sendResponse(engineProcessingSenderId, "Bot: \n" + result.board);
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
 					sendResponse(engineProcessingSenderId, "Error detected *beep boop*");
@@ -208,6 +208,7 @@ async function postEngineMove(engineMove) {
 				isEngineRunning = false;
 				engineProcessingSenderId = null;
 			})
+			.catch(e => console.log(e));
 		return true;
 	} else {
 		return false;
@@ -249,7 +250,6 @@ function startEngine() {
 
 	engine.addMessageListener(function onLog(line)
     {
-        var match;
         console.log("Line: " + line)
 		
 		if (line.indexOf("uciok") > -1) {
@@ -257,8 +257,10 @@ function startEngine() {
 			// Sets server port and logs message on success
 			app.listen(process.env.PORT || 80, () => console.log('webhook is listening on port ' + String(process.env.PORT)));
 		} else if (line.indexOf("bestmove") > -1) {
-			match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
-			postEngineMove({from: match[1], to: match[2], promotion: match[3]});
+			let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
+			if (match) {
+				postEngineMove({from: match[1], to: match[2], promotion: match[3]});
+			}
 		}
 	});
 
@@ -278,38 +280,42 @@ app.post('/webhook', (req, res) => {
 	
 		// Iterates over each entry - there may be multiple if batched
 		body.entry.forEach(function(entry) {
-			// Gets the message. entry.messaging is an array, but 
-			// will only ever contain one message, so we get index 0
-			let webhook_event = entry.messaging[0];
-			console.log(webhook_event);
-		
-			let sender_psid = webhook_event.sender.id;
-			let message = webhook_event.message.text;
-			console.log('Sender PSID: ' + sender_psid);
+			try {
+				// Gets the message. entry.messaging is an array, but 
+				// will only ever contain one message, so we get index 0
+				let webhook_event = entry.messaging[0];
+				console.log(webhook_event);
 			
-			if (message.toLowerCase() === 'new game') {
-				newGame(sender_psid)
-					.then(result => {
-						sendResponse(sender_psid, "New game:\n" + result.board);
-					})
-					.catch(e => console.log(e));
-			} else if (message === 'test') {
-				let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
-				sendResponse(sender_psid, "Test", quickReply);
-			} else {
-				makeMove(sender_psid, message)
-					.then(result => {
-						if (result.valid) {
-							console.log(result.board);
-							sendResponse(sender_psid, "Board:\n" + result.board);
-							
-							startEngineMove(result.fen, sender_psid)
-						} else {
-							console.log("Input move is invalid: " + message);
-							sendResponse(sender_psid, "Invalid move");
-						}
-					})
-					.catch(e => console.log(e));
+				let sender_psid = webhook_event.sender.id;
+				let message = webhook_event.message.text;
+				console.log('Sender PSID: ' + sender_psid);
+				
+				if (message.toLowerCase() === 'new game') {
+					newGame(sender_psid)
+						.then(result => {
+							sendResponse(sender_psid, "New game:\n" + result.board);
+						})
+						.catch(e => console.log(e));
+				} else if (message === 'test') {
+					let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
+					sendResponse(sender_psid, "Test", quickReply);
+				} else {
+					makeMove(sender_psid, message)
+						.then(result => {
+							if (result.valid) {
+								console.log(result.board);
+								sendResponse(sender_psid, "You:\n" + result.board);
+								
+								startEngineMove(result.fen, sender_psid)
+							} else {
+								console.log("Input move is invalid: " + message);
+								sendResponse(sender_psid, "Invalid move");
+							}
+						})
+						.catch(e => console.log(e));
+				}
+			} catch(e) {
+				console.error(e);
 			}
 		});
 
