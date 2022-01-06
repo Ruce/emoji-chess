@@ -348,6 +348,7 @@ app.post('/webhook', (req, res) => {
 				let payload;
 				if (webhook_event.message.quick_reply) {
 					payload = webhook_event.message.quick_reply.payload;
+				}
 				chatController(message, sender_psid, payload);
 			} catch(e) {
 				console.error(e);
