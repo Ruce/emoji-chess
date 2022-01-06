@@ -205,22 +205,24 @@ function startEngineMove(fen, senderId) {
 
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
-		typingOn(engineProcessingSenderId).then(data => {console.log(data); });
-		await new Promise(r => setTimeout(r, 5000));
+		isEngineRunning = false;
+		let senderId = engineProcessingSenderId;
+		engineProcessingSenderId = null;
 		
-		makeMove(engineProcessingSenderId, engineMove)
+		await new Promise(r => setTimeout(r, 500));
+		typingOn(senderId).then(data => {console.log(data); });
+		await new Promise(r => setTimeout(r, 2000));
+		
+		makeMove(senderId, engineMove)
 			.then(position => {
 				if (position.move != null) {
 					console.log(position.board);
-					sendResponse(engineProcessingSenderId, position.move.san);
-					sendResponse(engineProcessingSenderId, "Bot: \n" + position.board);
+					sendResponse(senderId, "👶: " + position.move.san);
+					sendResponse(senderId, "Move X (your turn)\n" + position.board);
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
-					sendResponse(engineProcessingSenderId, "Error detected *beep boop*");
+					sendResponse(senderId, "Error detected *beep boop*");
 				}
-				
-				isEngineRunning = false;
-				engineProcessingSenderId = null;
 			})
 			.catch(e => console.log(e));
 		return true;
