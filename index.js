@@ -215,6 +215,40 @@ async function postEngineMove(engineMove) {
 	}
 }
 
+function chatController(message, senderId) {
+	switch(message.toLowerCase()) {
+		case 'new game':
+			newGame(sender_psid)
+			.then(result => {
+				sendResponse(sender_psid, "New game:\n" + result.board);
+			})
+			.catch(e => console.log(e));
+			break;
+		case 'test':
+			let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
+			sendResponse(sender_psid, "Test", quickReply);
+		default:
+			makeMove(sender_psid, message)
+			.then(result => {
+				if (result.valid) {
+					console.log(result.board);
+					sendResponse(sender_psid, "You:\n" + result.board);
+					
+					startEngineMove(result.fen, sender_psid)
+				} else {
+					console.log("Input move is invalid: " + message);
+					sendResponse(sender_psid, "Invalid move");
+				}
+			})
+			.catch(e => console.log(e));
+	}
+}
+
+// ----------
+// START
+// Initialise chess engine, register app listen, and create endpoints
+// ----------
+
 var wasmPath = require.resolve("stockfish/src/stockfish.wasm");
 var mod = {
 	locateFile: function (path)
@@ -253,7 +287,6 @@ function startEngine() {
         console.log("Line: " + line)
 		
 		if (line.indexOf("uciok") > -1) {
-			//engine.terminate();
 			// Sets server port and logs message on success
 			app.listen(process.env.PORT || 80, () => console.log('webhook is listening on port ' + String(process.env.PORT)));
 		} else if (line.indexOf("bestmove") > -1) {
@@ -268,7 +301,6 @@ function startEngine() {
 	send("setoption name Skill Level value 0");
 	send("d");
 }
-
 
 // Creates the endpoint for our webhook 
 app.post('/webhook', (req, res) => {	
@@ -288,32 +320,7 @@ app.post('/webhook', (req, res) => {
 			
 				let sender_psid = webhook_event.sender.id;
 				let message = webhook_event.message.text;
-				console.log('Sender PSID: ' + sender_psid);
-				
-				if (message.toLowerCase() === 'new game') {
-					newGame(sender_psid)
-						.then(result => {
-							sendResponse(sender_psid, "New game:\n" + result.board);
-						})
-						.catch(e => console.log(e));
-				} else if (message === 'test') {
-					let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
-					sendResponse(sender_psid, "Test", quickReply);
-				} else {
-					makeMove(sender_psid, message)
-						.then(result => {
-							if (result.valid) {
-								console.log(result.board);
-								sendResponse(sender_psid, "You:\n" + result.board);
-								
-								startEngineMove(result.fen, sender_psid)
-							} else {
-								console.log("Input move is invalid: " + message);
-								sendResponse(sender_psid, "Invalid move");
-							}
-						})
-						.catch(e => console.log(e));
-				}
+				chatController(message, sender_psid);
 			} catch(e) {
 				console.error(e);
 			}
