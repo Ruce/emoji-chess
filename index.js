@@ -231,13 +231,34 @@ async function postEngineMove(engineMove) {
 	}
 }
 
+const botLevel = {
+	one: { emoji: '👶', payload: 'level_1', depth: 1, commands: ['setoption name Skill Level value 0'] },
+	two: { emoji: '👧', payload: 'level_2', depth: 3, commands: ['setoption name Skill Level value 5']  },
+	three: { emoji: '👨‍🦳', payload: 'level_3', depth: 6, commands: ['setoption name Skill Level value 10']  },
+	four: { emoji: '🧙‍♂️', payload: 'level_4', depth: 10, commands: ['setoption name Skill Level value 15']  },
+	five: { emoji: '👽', payload: 'level_5', depth: 18, commands: ['setoption name Skill Level value 20']  }
+}
+
 function chatController(message, senderId, payload = null) {
 	if (payload != null) {
 		switch(payload) {
-			case 'abc':
+			case botLevel.one.payload:
+				sendResponse(senderId, "Level 1");
+				break;
+			case botLevel.two.payload:
+				sendResponse(senderId, "Level 2");
+				break;
+			case botLevel.three.payload:
+				sendResponse(senderId, "Level 3");
+				break;
+			case botLevel.four.payload:
+				sendResponse(senderId, "Level 4");
+				break;
+			case botLevel.five.payload:
+				sendResponse(senderId, "Level 5");
 				break;
 			default:
-				console.error("Unknown payload: " + payload);
+				console.error("ERROR - Unknown payload: " + payload);
 		}
 	} else {
 		switch(message.toLowerCase()) {
@@ -249,8 +270,11 @@ function chatController(message, senderId, payload = null) {
 				.catch(e => console.log(e));
 				break;
 			case 'test':
-				let quickReply = [{ content_type:"text", title:"♟(pawn)", payload:"Test" }];
-				sendResponse(senderId, "Test", quickReply);
+				let quickReply = [];
+				Object.entries(botLevel).forEach(([key, val]) => {
+					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
+				}
+				sendResponse(senderId, "Choose a difficulty:", quickReply);
 				break;
 			default:
 				makeMove(senderId, message)
