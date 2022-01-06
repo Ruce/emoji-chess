@@ -147,7 +147,6 @@ async function newGame(senderId) {
 	const updateRes = await client.query(update, [chess.fen(), senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
-	
 	await client.end();
 	return {fen: chess.fen(), board: outputBoard(chess.board())};
 }
@@ -162,15 +161,18 @@ async function makeMove(senderId, move) {
 	console.log('Old fen: ' + fen);
 	
 	const chess = new Chess(fen);
-	chess.move(move);
+	let moveResult = chess.move(move);
 	let newFen = chess.fen();
 	
-	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-	const updateRes = await client.query(update, [newFen, senderId]);
-	console.log('New fen: ' + updateRes.rows[0].fen);
+	if (moveResult != null) {
+		// moveResult is null if the input move is invalid
+		const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
+		const updateRes = await client.query(update, [newFen, senderId]);
+		console.log('New fen: ' + updateRes.rows[0].fen);
+	}
 	
 	await client.end();
-	return {fen: newFen, board: outputBoard(chess.board())};
+	return {valid: moveResult != null, fen: newFen, board: outputBoard(chess.board())};
 }
 
 var isEngineRunning = false;
@@ -179,7 +181,7 @@ var engineProcessingSenderId;
 function startEngineMove(fen, senderId) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
-		engine.postMessage("go depth 10");
+		engine.postMessage("go depth 5");
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
 		return true;
@@ -192,9 +194,14 @@ function startEngineMove(fen, senderId) {
 function postEngineMove(engineMove) {
 	if (isEngineRunning) {
 		makeMove(engineProcessingSenderId, engineMove)
-			.then(position => {
-				console.log(position.board);
-				sendResponse(engineProcessingSenderId, "Board:\n" + position.board);
+			.then(result => {
+				if (result.valid) {
+					console.log(result.board);
+					sendResponse(engineProcessingSenderId, "Board:\n" + result.board);
+				} else {
+					console.log("Unexpected error with engineMove " + engineMove)
+					sendResponse(engineProcessingSenderId, "Error detected *beep boop*");
+				}
 				
 				isEngineRunning = false;
 				engineProcessingSenderId = null;
@@ -251,6 +258,8 @@ function startEngine() {
 	});
 
 	send("uci");
+	send("setoption name Skill Level value 0");
+	send("d");
 }
 
 
@@ -275,8 +284,8 @@ app.post('/webhook', (req, res) => {
 			
 			if (message.toLowerCase() === 'new game') {
 				newGame(sender_psid)
-					.then(position => {
-						sendResponse(sender_psid, "New game:\n" + position.board);
+					.then(result => {
+						sendResponse(sender_psid, "New game:\n" + result.board);
 					})
 					.catch(e => console.log(e));
 			} else if (message === 'test') {
@@ -284,11 +293,16 @@ app.post('/webhook', (req, res) => {
 				sendResponse(sender_psid, "Test", quickReply);
 			} else {
 				makeMove(sender_psid, message)
-					.then(position => {
-						console.log(position.board);
-						sendResponse(sender_psid, "Board:\n" + position.board);
-						
-						startEngineMove(position.fen, sender_psid)
+					.then(result => {
+						if (result.valid) {
+							console.log(result.board);
+							sendResponse(sender_psid, "Board:\n" + result.board);
+							
+							startEngineMove(result.fen, sender_psid)
+						} else {
+							console.log("Input move is invalid: " + message);
+							sendResponse(sender_psid, "Invalid move");
+						}
 					})
 					.catch(e => console.log(e));
 			}
