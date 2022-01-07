@@ -205,7 +205,7 @@ function startEngineMove(fen, senderId) {
 }
 
 async function testEngineMove(fen, senderId) {
-	for (i = 0; i < 10; i++) {
+	for (let i = 0; i < 10; i++) {
 		startEngineMove(fen, senderId)
 		await new Promise(r => setTimeout(r, 500));
 	}
