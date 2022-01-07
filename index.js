@@ -217,22 +217,22 @@ async function postEngineMove(engineMove) {
 		let senderId = engineProcessingSenderId;
 		engineProcessingSenderId = null;
 		
-		await new Promise(r => setTimeout(r, 100));
-		//typingOn(senderId).then(data => {console.log(data); });
-		//await new Promise(r => setTimeout(r, 1000));
+		await new Promise(r => setTimeout(r, 200));
+		typingOn(senderId).then(data => {console.log(data); });
+		await new Promise(r => setTimeout(r, 1300));
 		
-		//makeMove(senderId, engineMove)
-		//	.then(position => {
-		//		if (position.move != null) {
-		//			console.log(position.board);
-		//			sendResponse(senderId, "👶 says: " + position.move.san);
-		//			sendResponse(senderId, "Move X (your turn)\n" + position.board);
-		//		} else {
-		//			console.log("Unexpected error with engineMove " + engineMove)
-		//			sendResponse(senderId, "Error detected *beep boop*");
-		//		}
-		//	})
-		//	.catch(e => console.log(e));
+		makeMove(senderId, engineMove)
+			.then(position => {
+				if (position.move != null) {
+					console.log(position.board);
+					sendResponse(senderId, "👶 says: " + position.move.san);
+					sendResponse(senderId, "Move X (your turn)\n" + position.board);
+				} else {
+					console.log("Unexpected error with engineMove " + engineMove)
+					sendResponse(senderId, "Error detected *beep boop*");
+				}
+			})
+			.catch(e => console.log(e));
 		return true;
 	} else {
 		return false;
@@ -295,8 +295,8 @@ function chatController(message, senderId, payload = null) {
 						console.log(position.board);
 						sendResponse(senderId, "You:\n" + position.board);
 						
-						//startEngineMove(position.fen, senderId);
-						testEngineMove(position.fen, senderId);
+						startEngineMove(position.fen, senderId);
+						//testEngineMove(position.fen, senderId);
 					} else {
 						console.log("Input move is invalid: " + message);
 						sendResponse(senderId, "Invalid move");
