@@ -190,11 +190,11 @@ async function makeMove(senderId, move) {
 var isEngineRunning = false;
 var engineProcessingSenderId;
 
-function startEngineMove(fen, senderId) {
+function startEngineMove(fen, senderId, depth, skillLevel) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
-		engine.postMessage("setoption name Skill Level value 0");
-		engine.postMessage("go depth 1");
+		engine.postMessage("setoption name Skill Level value " + String(skillLevel));
+		engine.postMessage("go depth " + String(depth));
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
 		return true;
@@ -205,9 +205,29 @@ function startEngineMove(fen, senderId) {
 }
 
 async function testEngineMove(fen, senderId) {
-	for (let i = 0; i < 10; i++) {
-		startEngineMove(fen, senderId)
-		await new Promise(r => setTimeout(r, 500));
+	for (let i = 0; i < 30; i++) {
+		startEngineMove(fen, senderId, 1, 0)
+		await new Promise(r => setTimeout(r, 300));
+	}
+	
+	for (let i = 0; i < 30; i++) {
+		startEngineMove(fen, senderId, 1, 1)
+		await new Promise(r => setTimeout(r, 300));
+	}
+	
+	for (let i = 0; i < 30; i++) {
+		startEngineMove(fen, senderId, 1, 5)
+		await new Promise(r => setTimeout(r, 300));
+	}
+	
+	for (let i = 0; i < 30; i++) {
+		startEngineMove(fen, senderId, 1, 10)
+		await new Promise(r => setTimeout(r, 300));
+	}
+	
+	for (let i = 0; i < 30; i++) {
+		startEngineMove(fen, senderId, 1, 15)
+		await new Promise(r => setTimeout(r, 300));
 	}
 }
 
@@ -217,22 +237,22 @@ async function postEngineMove(engineMove) {
 		let senderId = engineProcessingSenderId;
 		engineProcessingSenderId = null;
 		
-		await new Promise(r => setTimeout(r, 200));
-		typingOn(senderId).then(data => {console.log(data); });
-		await new Promise(r => setTimeout(r, 1300));
+		await new Promise(r => setTimeout(r, 50));
+		//typingOn(senderId).then(data => {console.log(data); });
+		//await new Promise(r => setTimeout(r, 1300));
 		
-		makeMove(senderId, engineMove)
-			.then(position => {
-				if (position.move != null) {
-					console.log(position.board);
-					sendResponse(senderId, "👶 says: " + position.move.san);
-					sendResponse(senderId, "Move X (your turn)\n" + position.board);
-				} else {
-					console.log("Unexpected error with engineMove " + engineMove)
-					sendResponse(senderId, "Error detected *beep boop*");
-				}
-			})
-			.catch(e => console.log(e));
+		//makeMove(senderId, engineMove)
+		//	.then(position => {
+		//		if (position.move != null) {
+		//			console.log(position.board);
+		//			sendResponse(senderId, "👶 says: " + position.move.san);
+		//			sendResponse(senderId, "Move X (your turn)\n" + position.board);
+		//		} else {
+		//			console.log("Unexpected error with engineMove " + engineMove)
+		//			sendResponse(senderId, "Error detected *beep boop*");
+		//		}
+		//	})
+		//	.catch(e => console.log(e));
 		return true;
 	} else {
 		return false;
@@ -295,8 +315,8 @@ function chatController(message, senderId, payload = null) {
 						console.log(position.board);
 						sendResponse(senderId, "You:\n" + position.board);
 						
-						startEngineMove(position.fen, senderId);
-						//testEngineMove(position.fen, senderId);
+						//startEngineMove(position.fen, senderId, 1, 0);
+						testEngineMove(position.fen, senderId);
 					} else {
 						console.log("Input move is invalid: " + message);
 						sendResponse(senderId, "Invalid move");
