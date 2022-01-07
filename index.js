@@ -193,7 +193,7 @@ var engineProcessingSenderId;
 function startEngineMove(fen, senderId) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
-		engine.postMessage("go depth 1");
+		engine.postMessage("go depth 2");
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
 		return true;
@@ -211,7 +211,7 @@ async function postEngineMove(engineMove) {
 		
 		await new Promise(r => setTimeout(r, 500));
 		typingOn(senderId).then(data => {console.log(data); });
-		await new Promise(r => setTimeout(r, 2000));
+		await new Promise(r => setTimeout(r, 1000));
 		
 		makeMove(senderId, engineMove)
 			.then(position => {
@@ -352,7 +352,7 @@ function startEngine() {
 	});
 
 	send("uci");
-	send("setoption name Skill Level value -9");
+	send("setoption name Skill Level value 0");
 }
 
 // Creates the endpoint for our webhook 
