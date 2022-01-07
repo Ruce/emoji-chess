@@ -234,6 +234,18 @@ async function testEngineMove(fen, senderId) {
 		startEngineMove(fen, senderId, 1, 15)
 		await new Promise(r => setTimeout(r, 200));
 	}
+	
+	console.log("Depth 2 Skill Level 0");
+	for (let i = 0; i < 30; i++) {
+		startEngineMove(fen, senderId, 2, 0)
+		await new Promise(r => setTimeout(r, 200));
+	}
+	
+	console.log("Depth 2 Skill Level 10");
+	for (let i = 0; i < 30; i++) {
+		startEngineMove(fen, senderId, 1, 10)
+		await new Promise(r => setTimeout(r, 200));
+	}
 }
 
 async function postEngineMove(engineMove) {
@@ -387,7 +399,7 @@ function startEngine() {
 
 	send("uci");
 	send("setoption name Ponder value false");
-	//send("setoption name MultiPV value 3");
+	send("setoption name MultiPV value 3");
 }
 
 // Creates the endpoint for our webhook 
