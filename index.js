@@ -193,6 +193,7 @@ var engineProcessingSenderId;
 function startEngineMove(fen, senderId) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
+		engine.postMessage("setoption name Skill Level value 0");
 		engine.postMessage("go depth 2");
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
@@ -352,7 +353,7 @@ function startEngine() {
 	});
 
 	send("uci");
-	send("setoption name Skill Level value 0");
+	send("setoption name Ponder value false");
 }
 
 // Creates the endpoint for our webhook 
