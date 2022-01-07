@@ -207,7 +207,7 @@ var engineProcessingSenderId;
 
 function startEngineMove(fen, senderId, depth, skillLevel) {
 	if (!isEngineRunning) {
-		//console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
+		console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
 		
 		engine.postMessage("ucinewgame");
 		engine.postMessage("position fen " + fen);
@@ -396,6 +396,8 @@ function chatController(message, senderId, payload = null) {
 						getEngineLevel(senderId)
 						.then(l => {
 							let level = parseInt(l);
+							console.log(level);
+							console.log("Test : " + botLevel[level].depth);
 							startEngineMove(position.fen, senderId, botLevel[level].depth, botLevel[level].skill);
 						});
 						//testEngineMove(position.fen, senderId);
