@@ -211,40 +211,46 @@ async function testEngineMove(fen, senderId) {
 		await new Promise(r => setTimeout(r, 200));
 	}
 	
+	await new Promise(r => setTimeout(r, 2000));
 	console.log("Depth 1 Skill Level 1");
 	for (let i = 0; i < 30; i++) {
 		startEngineMove(fen, senderId, 1, 1)
-		await new Promise(r => setTimeout(r, 200));
+		await new Promise(r => setTimeout(r, 300));
 	}
 	
+	await new Promise(r => setTimeout(r, 2000));
 	console.log("Depth 1 Skill Level 5");
 	for (let i = 0; i < 30; i++) {
 		startEngineMove(fen, senderId, 1, 5)
-		await new Promise(r => setTimeout(r, 200));
+		await new Promise(r => setTimeout(r, 300));
 	}
 	
+	await new Promise(r => setTimeout(r, 2000));
 	console.log("Depth 1 Skill Level 10");
 	for (let i = 0; i < 30; i++) {
 		startEngineMove(fen, senderId, 1, 10)
-		await new Promise(r => setTimeout(r, 200));
+		await new Promise(r => setTimeout(r, 300));
 	}
 	
+	await new Promise(r => setTimeout(r, 2000));
 	console.log("Depth 1 Skill Level 15");
 	for (let i = 0; i < 30; i++) {
 		startEngineMove(fen, senderId, 1, 15)
-		await new Promise(r => setTimeout(r, 200));
+		await new Promise(r => setTimeout(r, 300));
 	}
 	
+	await new Promise(r => setTimeout(r, 2000));
 	console.log("Depth 2 Skill Level 0");
 	for (let i = 0; i < 30; i++) {
 		startEngineMove(fen, senderId, 2, 0)
-		await new Promise(r => setTimeout(r, 200));
+		await new Promise(r => setTimeout(r, 300));
 	}
 	
+	await new Promise(r => setTimeout(r, 2000));
 	console.log("Depth 2 Skill Level 10");
 	for (let i = 0; i < 30; i++) {
-		startEngineMove(fen, senderId, 1, 10)
-		await new Promise(r => setTimeout(r, 200));
+		startEngineMove(fen, senderId, 2, 10)
+		await new Promise(r => setTimeout(r, 300));
 	}
 }
 
