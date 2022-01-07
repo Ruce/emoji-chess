@@ -354,6 +354,7 @@ function startEngine() {
 
 	send("uci");
 	send("setoption name Ponder value false");
+	send("setoption name MultiPV value 3");
 }
 
 // Creates the endpoint for our webhook 
