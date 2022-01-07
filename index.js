@@ -204,28 +204,35 @@ function startEngineMove(fen, senderId) {
 	}
 }
 
+async function testEngineMove(fen, senderId) {
+	for (i = 0; i < 10; i++) {
+		startEngineMove(fen, senderId)
+		await new Promise(r => setTimeout(r, 500));
+	}
+}
+
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
 		isEngineRunning = false;
 		let senderId = engineProcessingSenderId;
 		engineProcessingSenderId = null;
 		
-		await new Promise(r => setTimeout(r, 500));
-		typingOn(senderId).then(data => {console.log(data); });
-		await new Promise(r => setTimeout(r, 1000));
+		await new Promise(r => setTimeout(r, 100));
+		//typingOn(senderId).then(data => {console.log(data); });
+		//await new Promise(r => setTimeout(r, 1000));
 		
-		makeMove(senderId, engineMove)
-			.then(position => {
-				if (position.move != null) {
-					console.log(position.board);
-					sendResponse(senderId, "👶 says: " + position.move.san);
-					sendResponse(senderId, "Move X (your turn)\n" + position.board);
-				} else {
-					console.log("Unexpected error with engineMove " + engineMove)
-					sendResponse(senderId, "Error detected *beep boop*");
-				}
-			})
-			.catch(e => console.log(e));
+		//makeMove(senderId, engineMove)
+		//	.then(position => {
+		//		if (position.move != null) {
+		//			console.log(position.board);
+		//			sendResponse(senderId, "👶 says: " + position.move.san);
+		//			sendResponse(senderId, "Move X (your turn)\n" + position.board);
+		//		} else {
+		//			console.log("Unexpected error with engineMove " + engineMove)
+		//			sendResponse(senderId, "Error detected *beep boop*");
+		//		}
+		//	})
+		//	.catch(e => console.log(e));
 		return true;
 	} else {
 		return false;
@@ -274,7 +281,7 @@ function chatController(message, senderId, payload = null) {
 				})
 				.catch(e => console.log(e));
 				break;
-			case 'test':
+			case 'level':
 				let quickReply = [];
 				Object.entries(botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
@@ -288,7 +295,8 @@ function chatController(message, senderId, payload = null) {
 						console.log(position.board);
 						sendResponse(senderId, "You:\n" + position.board);
 						
-						startEngineMove(position.fen, senderId);
+						//startEngineMove(position.fen, senderId);
+						testEngineMove(position.fen, senderId);
 					} else {
 						console.log("Input move is invalid: " + message);
 						sendResponse(senderId, "Invalid move");
@@ -347,8 +355,7 @@ function startEngine() {
 		} else if (line.indexOf("bestmove") > -1) {
 			let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
 			if (match) {
-				//postEngineMove({from: match[1], to: match[2], promotion: match[3]});
-				console.log({from: match[1], to: match[2], promotion: match[3]});
+				postEngineMove({from: match[1], to: match[2], promotion: match[3]});
 			}
 		}
 	});
