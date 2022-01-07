@@ -150,13 +150,13 @@ async function createClient() {
 	return client;
 }
 
-async function newGame(senderId) {
+async function newGame(senderId, level) {
 	// Connect to the PostgreSQL database
 	const client = await createClient();
 	
 	const chess = new Chess();
-	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-	const updateRes = await client.query(update, [chess.fen(), senderId]);
+	const update = 'UPDATE games SET fen = $1, level = $2 WHERE sender_id = $3 RETURNING *;'
+	const updateRes = await client.query(update, [chess.fen(), level, senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
@@ -187,13 +187,26 @@ async function makeMove(senderId, move) {
 	return {move: moveResult, fen: newFen, board: outputBoard(chess.board())};
 }
 
+async function getEngineLevel(senderId) {
+	const client = await createClient();
+	
+	const select = 'SELECT level FROM games WHERE sender_id = $1;'
+	const selectRes = await client.query(select, [senderId]);
+	let level = selectRes.rows[0].level;
+	await client.end();
+	
+	return level;
+}
+
 var isEngineRunning = false;
 var engineProcessingSenderId;
 
 function startEngineMove(fen, senderId, depth, skillLevel) {
 	if (!isEngineRunning) {
+		console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
+		
+		engine.postMessage("ucinewgame");
 		engine.postMessage("position fen " + fen);
-		console.log("Level " + String(skillLevel));
 		engine.postMessage("setoption name Skill Level value " + String(skillLevel));
 		engine.postMessage("go depth " + String(depth));
 		isEngineRunning = true;
@@ -206,26 +219,6 @@ function startEngineMove(fen, senderId, depth, skillLevel) {
 }
 
 async function testEngineMove(fen, senderId) {
-	console.log("Depth 1 Skill Level -9");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, -9)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 1 Skill Level -3");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, -3)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 1 Skill Level 0");
 	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
@@ -323,56 +316,58 @@ async function postEngineMove(engineMove) {
 		engineProcessingSenderId = null;
 		
 		await new Promise(r => setTimeout(r, 50));
-		//typingOn(senderId).then(data => {console.log(data); });
-		//await new Promise(r => setTimeout(r, 1300));
+		typingOn(senderId).then(data => {console.log(data); });
+		await new Promise(r => setTimeout(r, 1300));
 		
-		//makeMove(senderId, engineMove)
-		//	.then(position => {
-		//		if (position.move != null) {
-		//			console.log(position.board);
-		//			sendResponse(senderId, "👶 says: " + position.move.san);
-		//			sendResponse(senderId, "Move X (your turn)\n" + position.board);
-		//		} else {
-		//			console.log("Unexpected error with engineMove " + engineMove)
-		//			sendResponse(senderId, "Error detected *beep boop*");
-		//		}
-		//	})
-		//	.catch(e => console.log(e));
+		makeMove(senderId, engineMove)
+			.then(position => {
+				if (position.move != null) {
+					console.log(position.board);
+					sendResponse(senderId, "👶 says: " + position.move.san);
+					sendResponse(senderId, "Move X (your turn)\n" + position.board);
+				} else {
+					console.log("Unexpected error with engineMove " + engineMove)
+					sendResponse(senderId, "Error detected *beep boop*");
+				}
+			})
+			.catch(e => console.log(e));
 		return true;
 	} else {
 		return false;
 	}
 }
 
-const botLevel = {
-	one: { emoji: '👶', payload: 'level_1', depth: 1, commands: ['setoption name Skill Level value 0'] },
-	two: { emoji: '👧', payload: 'level_2', depth: 2, commands: ['setoption name Skill Level value 1']  },
-	three: { emoji: '🤓', payload: 'level_3', depth: 5, commands: ['setoption name Skill Level value 5']  },
-	four: { emoji: '👨‍🦳', payload: 'level_4', depth: 6, commands: ['setoption name Skill Level value 8']  },
-	five: { emoji: '🧙‍♂️', payload: 'level_5', depth: 10, commands: ['setoption name Skill Level value 12']  },
-	six: { emoji: '👽', payload: 'level_6', depth: 18, commands: ['setoption name Skill Level value 20']  }
-}
+const botLevel = [
+	{ emoji: '👶', payload: 'level_0', depth: 1, skill: 0},
+	{ emoji: '👧', payload: 'level_1', depth: 2, skill: 1},
+	{ emoji: '🤓', payload: 'level_2', depth: 5, skill: 5},
+	{ emoji: '👨‍🦳', payload: 'level_3', depth: 8, skill: 10},
+	{ emoji: '🧙‍♂️', payload: 'level_4', depth: 12, skill: 15},
+	{ emoji: '👽', payload: 'level_5', depth: 18, skill: 20}
+]
 
 function chatController(message, senderId, payload = null) {
 	if (payload != null) {
 		switch(payload) {
-			case botLevel.one.payload:
-				sendResponse(senderId, "Level 1");
-				break;
-			case botLevel.two.payload:
-				sendResponse(senderId, "Level 2");
-				break;
-			case botLevel.three.payload:
-				sendResponse(senderId, "Level 3");
-				break;
-			case botLevel.four.payload:
-				sendResponse(senderId, "Level 4");
-				break;
-			case botLevel.five.payload:
-				sendResponse(senderId, "Level 5");
-				break;
-			case botLevel.six.payload:
-				sendResponse(senderId, "Level 6");
+			case botLevel[0].payload:
+			case botLevel[1].payload:
+			case botLevel[2].payload:
+			case botLevel[3].payload:
+			case botLevel[4].payload:
+			case botLevel[5].payload:
+				let level;
+				for (let i = 0; i < botLevel.length; i++) {
+					if (payload == botLevel[i].payload) {
+						let level = i;
+						break;
+					}
+				}
+				
+				newGame(senderId, level)
+				.then(position => {
+					sendResponse(senderId, "New game:\n" + position.board);
+				})
+				.catch(e => console.log(e));
 				break;
 			default:
 				console.error("ERROR - Unknown payload: " + payload);
@@ -380,18 +375,12 @@ function chatController(message, senderId, payload = null) {
 	} else {
 		switch(message.toLowerCase()) {
 			case 'new game':
-				newGame(senderId)
-				.then(position => {
-					sendResponse(senderId, "New game:\n" + position.board);
-				})
-				.catch(e => console.log(e));
-				break;
-			case 'level':
+				sendResponse(senderId, "Starting a new game...", quickReply);
 				let quickReply = [];
 				Object.entries(botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
 				});
-				sendResponse(senderId, "Choose a difficulty:", quickReply);
+				sendResponse(senderId, "Choose your opponent:", quickReply);
 				break;
 			default:
 				makeMove(senderId, message)
@@ -400,8 +389,11 @@ function chatController(message, senderId, payload = null) {
 						console.log(position.board);
 						sendResponse(senderId, "You:\n" + position.board);
 						
-						//startEngineMove(position.fen, senderId, 1, 0);
-						testEngineMove(position.fen, senderId);
+						getEngineLevel(senderId)
+						.then(level => {
+							startEngineMove(position.fen, senderId, botLevel[level].depth, botLevel[level].skill);
+						});
+						//testEngineMove(position.fen, senderId);
 					} else {
 						console.log("Input move is invalid: " + message);
 						sendResponse(senderId, "Invalid move");
