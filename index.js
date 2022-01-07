@@ -352,7 +352,7 @@ function startEngine() {
 	});
 
 	send("uci");
-	send("setoption name Skill Level value 0");
+	send("setoption name Skill Level value -9");
 }
 
 // Creates the endpoint for our webhook 
