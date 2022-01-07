@@ -194,7 +194,7 @@ function startEngineMove(fen, senderId) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
 		engine.postMessage("setoption name Skill Level value 0");
-		engine.postMessage("go depth 2");
+		engine.postMessage("go depth 1");
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
 		return true;
