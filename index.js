@@ -394,7 +394,8 @@ function chatController(message, senderId, payload = null) {
 						sendResponse(senderId, "You:\n" + position.board);
 						
 						getEngineLevel(senderId)
-						.then(level => {
+						.then(l => {
+							let level = parseInt(l);
 							startEngineMove(position.fen, senderId, botLevel[level].depth, botLevel[level].skill);
 						});
 						//testEngineMove(position.fen, senderId);
