@@ -193,7 +193,7 @@ var engineProcessingSenderId;
 function startEngineMove(fen, senderId) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
-		engine.postMessage("go depth 2");
+		engine.postMessage("go depth 1");
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
 		return true;
@@ -233,10 +233,11 @@ async function postEngineMove(engineMove) {
 
 const botLevel = {
 	one: { emoji: '👶', payload: 'level_1', depth: 1, commands: ['setoption name Skill Level value 0'] },
-	two: { emoji: '👧', payload: 'level_2', depth: 3, commands: ['setoption name Skill Level value 5']  },
-	three: { emoji: '👨‍🦳', payload: 'level_3', depth: 6, commands: ['setoption name Skill Level value 10']  },
-	four: { emoji: '🧙‍♂️', payload: 'level_4', depth: 10, commands: ['setoption name Skill Level value 15']  },
-	five: { emoji: '👽', payload: 'level_5', depth: 18, commands: ['setoption name Skill Level value 20']  }
+	two: { emoji: '👧', payload: 'level_2', depth: 2, commands: ['setoption name Skill Level value 1']  },
+	three: { emoji: '🤓', payload: 'level_3', depth: 5, commands: ['setoption name Skill Level value 5']  },
+	four: { emoji: '👨‍🦳', payload: 'level_4', depth: 6, commands: ['setoption name Skill Level value 8']  },
+	five: { emoji: '🧙‍♂️', payload: 'level_5', depth: 10, commands: ['setoption name Skill Level value 12']  },
+	six: { emoji: '👽', payload: 'level_6', depth: 18, commands: ['setoption name Skill Level value 20']  }
 }
 
 function chatController(message, senderId, payload = null) {
@@ -256,6 +257,9 @@ function chatController(message, senderId, payload = null) {
 				break;
 			case botLevel.five.payload:
 				sendResponse(senderId, "Level 5");
+				break;
+			case botLevel.six.payload:
+				sendResponse(senderId, "Level 6");
 				break;
 			default:
 				console.error("ERROR - Unknown payload: " + payload);
