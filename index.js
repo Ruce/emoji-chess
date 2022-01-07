@@ -193,6 +193,7 @@ var engineProcessingSenderId;
 function startEngineMove(fen, senderId, depth, skillLevel) {
 	if (!isEngineRunning) {
 		engine.postMessage("position fen " + fen);
+		console.log("Level " + String(skillLevel));
 		engine.postMessage("setoption name Skill Level value " + String(skillLevel));
 		engine.postMessage("go depth " + String(depth));
 		isEngineRunning = true;
@@ -205,84 +206,113 @@ function startEngineMove(fen, senderId, depth, skillLevel) {
 }
 
 async function testEngineMove(fen, senderId) {
+	console.log("Depth 1 Skill Level -9");
+	await new Promise(r => setTimeout(r, 500));
+	for (let i = 0; i < 40; i++) {
+		engine.postMessage("ucinewgame");
+		await new Promise(r => setTimeout(r, 50));
+		startEngineMove(fen, senderId, 1, -9)
+		await new Promise(r => setTimeout(r, 400));
+	}
+	
+	await new Promise(r => setTimeout(r, 4000));
+	console.log("Depth 1 Skill Level -3");
+	await new Promise(r => setTimeout(r, 500));
+	for (let i = 0; i < 40; i++) {
+		engine.postMessage("ucinewgame");
+		await new Promise(r => setTimeout(r, 50));
+		startEngineMove(fen, senderId, 1, -3)
+		await new Promise(r => setTimeout(r, 400));
+	}
+	
+	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 1 Skill Level 0");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 1, 0)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 1 Skill Level 1");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 1, 1)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 1 Skill Level 5");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 1, 5)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 1 Skill Level 10");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 1, 10)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 1 Skill Level 15");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 1, 15)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 1 Skill Level 20");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 1, 20)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 2 Skill Level 0");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 2, 0)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 2 Skill Level 10");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 2, 10)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 	
 	await new Promise(r => setTimeout(r, 4000));
 	console.log("Depth 2 Skill Level 20");
+	await new Promise(r => setTimeout(r, 500));
 	for (let i = 0; i < 40; i++) {
 		engine.postMessage("ucinewgame");
 		await new Promise(r => setTimeout(r, 50));
 		startEngineMove(fen, senderId, 2, 20)
-		await new Promise(r => setTimeout(r, 350));
+		await new Promise(r => setTimeout(r, 400));
 	}
 }
 
