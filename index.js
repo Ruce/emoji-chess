@@ -362,7 +362,7 @@ function chatController(message, senderId, payload = null) {
 				let level;
 				for (let i = 0; i < botLevel.length; i++) {
 					if (payload == botLevel[i].payload) {
-						let level = i;
+						level = i;
 						break;
 					}
 				}
@@ -394,10 +394,7 @@ function chatController(message, senderId, payload = null) {
 						sendResponse(senderId, "You:\n" + position.board);
 						
 						getEngineLevel(senderId)
-						.then(l => {
-							let level = parseInt(l);
-							console.log(level);
-							console.log("Test : " + botLevel[level].depth);
+						.then(level => {
 							startEngineMove(position.fen, senderId, botLevel[level].depth, botLevel[level].skill);
 						});
 						//testEngineMove(position.fen, senderId);
