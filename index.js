@@ -347,14 +347,15 @@ function startEngine() {
 		} else if (line.indexOf("bestmove") > -1) {
 			let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
 			if (match) {
-				postEngineMove({from: match[1], to: match[2], promotion: match[3]});
+				//postEngineMove({from: match[1], to: match[2], promotion: match[3]});
+				console.log({from: match[1], to: match[2], promotion: match[3]});
 			}
 		}
 	});
 
 	send("uci");
 	send("setoption name Ponder value false");
-	send("setoption name MultiPV value 3");
+	//send("setoption name MultiPV value 3");
 }
 
 // Creates the endpoint for our webhook 
