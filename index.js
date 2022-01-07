@@ -375,7 +375,7 @@ function chatController(message, senderId, payload = null) {
 	} else {
 		switch(message.toLowerCase()) {
 			case 'new game':
-				sendResponse(senderId, "Starting a new game...", quickReply);
+				sendResponse(senderId, "Starting a new game...");
 				let quickReply = [];
 				Object.entries(botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
