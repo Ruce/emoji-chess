@@ -117,7 +117,7 @@ async function typingOn(senderId) {
 	return response;
 }
 
-function sendResponse(senderId, message, quickReplies = null) {
+async function sendResponse(senderId, message, quickReplies = null) {
 	let messageBody = {
 		messaging_type: "RESPONSE",
 		recipient: {
@@ -136,6 +136,10 @@ function sendResponse(senderId, message, quickReplies = null) {
 	.then(data => {
 		console.log(data); // JSON data parsed by `data.json()` call
 	});
+	
+	// Add a short delay so that subsequent messages can be sent in order by chaining promises
+	await new Promise(r => setTimeout(r, 250));
+	return true;
 }
 
 async function createClient() {
@@ -323,8 +327,8 @@ async function postEngineMove(engineMove) {
 			.then(position => {
 				if (position.move != null) {
 					console.log(position.board);
-					sendResponse(senderId, "👶 says: " + position.move.san);
-					sendResponse(senderId, "Move X (your turn)\n" + position.board);
+					sendResponse(senderId, "👶 says: " + position.move.san)
+					.then(r => sendResponse(senderId, "Move X (your turn)\n" + position.board));
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
 					sendResponse(senderId, "Error detected *beep boop*");
@@ -375,12 +379,12 @@ function chatController(message, senderId, payload = null) {
 	} else {
 		switch(message.toLowerCase()) {
 			case 'new game':
-				sendResponse(senderId, "Starting a new game...");
 				let quickReply = [];
 				Object.entries(botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
 				});
-				sendResponse(senderId, "Choose your opponent:", quickReply);
+				sendResponse(senderId, "Starting a new game...")
+				.then(r => sendResponse(senderId, "Choose your opponent:", quickReply));
 				break;
 			default:
 				makeMove(senderId, message)
