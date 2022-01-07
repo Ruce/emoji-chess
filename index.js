@@ -207,7 +207,7 @@ var engineProcessingSenderId;
 
 function startEngineMove(fen, senderId, depth, skillLevel) {
 	if (!isEngineRunning) {
-		console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
+		//console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
 		
 		engine.postMessage("ucinewgame");
 		engine.postMessage("position fen " + fen);
