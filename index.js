@@ -363,10 +363,16 @@ function chatController(message, senderId, payload = null) {
 				.then(r => sendResponse(senderId, "Choose your opponent:", quickReply));
 				break;
 			case 'white':
-				sendResponse(senderId, "White POV\n" + getBoard(senderId, true));
+				getBoard(senderId, true)
+				.then(board => {
+					sendResponse(senderId, "White POV\n" + board);
+				});
 				break;
 			case 'black':
-				sendResponse(senderId, "Black POV\n" + getBoard(senderId, false));
+				getBoard(senderId, false)
+				.then(board => {
+					sendResponse(senderId, "Black POV\n" + board);
+				});
 				break;
 			default:
 				makeMove(senderId, message)
@@ -387,7 +393,7 @@ function chatController(message, senderId, payload = null) {
 						console.log("Input move is invalid: " + message);
 						sendResponse(senderId, "Invalid move");
 					}
-				})
+				});
 				.catch(e => console.log(e));
 		}
 	}
