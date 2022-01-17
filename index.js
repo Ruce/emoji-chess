@@ -393,7 +393,7 @@ function chatController(message, senderId, payload = null) {
 						console.log("Input move is invalid: " + message);
 						sendResponse(senderId, "Invalid move");
 					}
-				});
+				})
 				.catch(e => console.log(e));
 		}
 	}
