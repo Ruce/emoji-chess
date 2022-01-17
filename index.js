@@ -96,7 +96,7 @@ function outputBoard(board, from, isWhitePov = true) {
 		let file = from.charCodeAt(0) - 97; // charCodeAt(n) gives the codepoint of the nth character in the string; lowercase a is 97
 		let rank = parseInt(from.charAt(1));
 		if (isNaN(rank) || file < 0 || file > 7) { throw 'Unexpected format of "from" parameter'; }
-		rows[8-rank][file] = (rows[8-rank][file] == symbols.board.darkTile) ? symbols.board.activeDarkTile : symbols.board.activeLightTile
+		rows[8-rank][file] = (rows[8-rank][file] == symbols.board.darkTile) ? symbols.board.activeDarkTile : symbols.board.activeLightTile;
 	}
 	
 	// Add rank number and file indicators
