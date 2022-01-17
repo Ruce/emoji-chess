@@ -71,7 +71,7 @@ function availableMoves(moves) {
 	return result;
 }
 
-const chess = new Chess(); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+const chess = new Chess("r1bqkbnr/4pppp/npp5/p2pP3/8/5N2/PPPPBPPP/RNBQ1RK1 w kq d6 0 7"); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 //const chess = new Chess("3qkbnr/pPpppppp/4b3/8/1P1P4/PR1RP3/1N1B1PPP/3QKBN1 w - - 0 1");
 //const chess = new Chess("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4");
 
@@ -83,11 +83,14 @@ const chess = new Chess(); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq
 
 for (let k = 0; k < 3; k++) {
 	const moves = chess.moves()
-	const move = moves[Math.floor(Math.random() * moves.length)]
-	chess.move(move)
+	//const move = moves[Math.floor(Math.random() * moves.length)]
+	//chess.move(move)
 }
 
-console.log(availableMoves(chess.moves()));
+//console.log(availableMoves(chess.moves()));
+
+let moveResult = chess.move("exd6")
+console.log(moveResult)
 
 const board = chess.board()
 
@@ -147,4 +150,4 @@ function outputBoard(board, isWhite = true) {
 	return output;
 }
 
-console.log(outputBoard(board))
+//console.log(outputBoard(board))

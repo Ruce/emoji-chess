@@ -41,6 +41,8 @@ const symbols = {
 		file: ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭"],
 		lightTile: "◽",
 		darkTile: "◾",
+		activeLightTile: "🔲",
+		activeDarkTile: "🔳",
 		origin: "🏁",
 		zeroWidth: "​"
 	}
@@ -62,7 +64,7 @@ const statusStalemate = "Stalemate";
 const statusRepetition = "Threefold Repetition";
 const statusMaterial = "Insufficient Material";
 
-function outputBoard(board, isWhite = true) {
+function outputBoard(board, from, isWhitePov = true) {
 	let rows = [];
 	
 	// Iterate through tiles on the board (2D array)
@@ -86,27 +88,39 @@ function outputBoard(board, isWhite = true) {
 				row.push(symbols.pieces[piece.color][piece.type]);
 			}
 		}
+		rows.push(row);
+	}
 		
-		if (isWhite) {
-			row.unshift(symbols.board.rank[i]); // Add rank number indicators
-			rows.push(row.join(""));
-		} else {
-			// From black's perspective, horizontally mirror rows and build board from bottom up
-			row.reverse()
-			row.unshift(symbols.board.rank[i]); // Add rank number indicators
-			rows.unshift(row.join(""));
-		}
+	// Replace the tile that a piece moved `from` in the previous turn into an "active" tile
+	if (from != null) {
+		let file = from.charCodeAt(0) - 97; // charCodeAt(n) gives the codepoint of the nth character in the string; lowercase a is 97
+		let rank = parseInt(from.charAt(1));
+		if (isNaN(rank) || file < 0 || file > 7) { throw 'Unexpected format of "from" parameter'; }
+		rows[8-rank][file] = (rows[8-rank][file] == symbols.board.darkTile) ? symbols.board.activeDarkTile : symbols.board.activeLightTile
 	}
 	
-	let output = rows.join("\n");
-	if (isWhite) {
-		let xAxis = symbols.board.origin + symbols.board.file.join(symbols.board.zeroWidth); // Add file indicators
-		output += "\n" + xAxis;
+	// Add rank number and file indicators
+	if (isWhitePov) {
+		for (let i = 0; i < 8; i++) {
+			rows[i].unshift(symbols.board.rank[i]); // Rank number indicators
+			rows[i] = rows[i].join("");
+		}
+		let xAxis = symbols.board.origin + symbols.board.file.join(symbols.board.zeroWidth); // File indicators
+		rows.push(xAxis);
 	} else {
-		let xAxis = symbols.board.origin + symbols.board.file.slice().reverse().join(symbols.board.zeroWidth); // Add file indicators
-		output += "\n" + xAxis;
+		// From black's perspective, horizontally mirror rows and build board from bottom up
+		let newRows = [];
+		for (let i = 0; i < 8; i++) {
+			rows[i].reverse();
+			rows[i].unshift(symbols.board.rank[i]); // Rank number indicators
+			newRows.unshift(rows[i].join(""));
+		}
+		rows = newRows;
+		let xAxis = symbols.board.origin + symbols.board.file.slice().reverse().join(symbols.board.zeroWidth); // File indicators
+		rows.push(xAxis);
 	}
-	return output;
+	
+	return rows.join("\n");
 }
 
 // Example POST method implementation:
@@ -180,7 +194,7 @@ async function newGame(senderId, level) {
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
-	return {fen: chess.fen(), board: outputBoard(chess.board())};
+	return {fen: chess.fen(), board: outputBoard(chess.board(), null)};
 }
 
 async function makeMove(senderId, move) {
@@ -194,6 +208,11 @@ async function makeMove(senderId, move) {
 	
 	const chess = new Chess(fen);
 	let moveResult = chess.move(move);
+	if (moveResult == null) {
+		// moveResult is null if the input move is invalid
+		return {move: moveResult};
+	}
+	
 	let newFen = chess.fen();
 	let gameOver = chess.game_over();
 	let status = null;
@@ -217,15 +236,25 @@ async function makeMove(senderId, move) {
 		}
 	}
 	
-	if (moveResult != null) {
-		// moveResult is null if the input move is invalid
-		const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-		const updateRes = await client.query(update, [newFen, senderId]);
-		console.log('New fen: ' + updateRes.rows[0].fen);
-	}
+	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
+	const updateRes = await client.query(update, [newFen, senderId]);
+	console.log('New fen: ' + updateRes.rows[0].fen);
 	
 	await client.end();
-	return {move: moveResult, fen: newFen, board: outputBoard(chess.board()), gameOver: gameOver, status: status};
+	return {move: moveResult, fen: newFen, board: outputBoard(chess.board(), moveResult.from), gameOver: gameOver, status: status};
+}
+
+async function getBoard(senderId, isWhitePov = true) {
+	const client = await createClient();
+	
+	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
+	const selectRes = await client.query(select, [senderId]);
+	
+	let fen = selectRes.rows[0].fen;
+	const chess = new Chess(fen);
+	await client.end();
+	
+	return outputBoard(chess.board(), null, isWhitePov);
 }
 
 async function getEngineLevel(senderId) {
@@ -332,6 +361,12 @@ function chatController(message, senderId, payload = null) {
 				});
 				sendResponse(senderId, "Starting a new game...")
 				.then(r => sendResponse(senderId, "Choose your opponent:", quickReply));
+				break;
+			case 'white':
+				sendResponse(senderId, "White POV\n" + getBoard(senderId, true));
+				break;
+			case 'black':
+				sendResponse(senderId, "Black POV\n" + getBoard(senderId, false));
 				break;
 			default:
 				makeMove(senderId, message)
