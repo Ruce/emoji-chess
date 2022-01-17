@@ -46,6 +46,22 @@ const symbols = {
 	}
 }
 
+const botLevel = [
+	{ emoji: '👶', payload: 'level_0', depth: 1, skill: 0},
+	{ emoji: '👧', payload: 'level_1', depth: 2, skill: 1},
+	{ emoji: '🤓', payload: 'level_2', depth: 5, skill: 5},
+	{ emoji: '👨‍🦳', payload: 'level_3', depth: 8, skill: 10},
+	{ emoji: '🧙‍♂️', payload: 'level_4', depth: 12, skill: 15},
+	{ emoji: '👽', payload: 'level_5', depth: 18, skill: 20}
+]
+
+const statusCheck = "Check";
+const statusCheckmate = "Checkmate";
+const statusDraw = "Draw";
+const statusStalemate = "Stalemate";
+const statusRepetition = "Threefold Repetition";
+const statusMaterial = "Insufficient Material";
+
 function outputBoard(board, isWhite = true) {
 	let rows = [];
 	
@@ -179,6 +195,27 @@ async function makeMove(senderId, move) {
 	const chess = new Chess(fen);
 	let moveResult = chess.move(move);
 	let newFen = chess.fen();
+	let gameOver = chess.game_over();
+	let status = null;
+	if (gameOver) {
+		// Game that is in_checkmate is also in_check, therefore call in_checkmate() first
+		if (chess.in_checkmate()) {
+			status = statusCheckmate;
+		} else if (chess.in_draw()) {
+			status = statusDraw;
+		} else if (chess.in_stalemate()) {
+			status = statusStalemate;
+		} else if (chess.in_threefold_repetition()) {
+			// TO DO: Cannot detect threefold repetition when calling FEN from scratch
+			status = statusRepetition;
+		} else if (chess.insufficient_material()) {
+			status = statusMaterial;
+		}
+	} else {
+		if (chess.in_check()) {
+			status = statusCheck;
+		}
+	}
 	
 	if (moveResult != null) {
 		// moveResult is null if the input move is invalid
@@ -188,7 +225,7 @@ async function makeMove(senderId, move) {
 	}
 	
 	await client.end();
-	return {move: moveResult, fen: newFen, board: outputBoard(chess.board())};
+	return {move: moveResult, fen: newFen, board: outputBoard(chess.board()), gameOver: gameOver, status: status};
 }
 
 async function getEngineLevel(senderId) {
@@ -204,9 +241,12 @@ async function getEngineLevel(senderId) {
 
 var isEngineRunning = false;
 var engineProcessingSenderId;
+var engineCurrentLevel;
 
-function startEngineMove(fen, senderId, depth, skillLevel) {
+function startEngineMove(fen, senderId, level) {
 	if (!isEngineRunning) {
+		let depth = botLevel[level].depth;
+		let skillLevel = botLevel[level].skill;
 		console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
 		
 		engine.postMessage("ucinewgame");
@@ -215,6 +255,7 @@ function startEngineMove(fen, senderId, depth, skillLevel) {
 		engine.postMessage("go depth " + String(depth));
 		isEngineRunning = true;
 		engineProcessingSenderId = senderId;
+		engineCurrentLevel = level;
 		return true;
 	} else {
 		// Engine currently analysing previous command
@@ -222,102 +263,13 @@ function startEngineMove(fen, senderId, depth, skillLevel) {
 	}
 }
 
-async function testEngineMove(fen, senderId) {
-	console.log("Depth 1 Skill Level 0");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, 0)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 1 Skill Level 1");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, 1)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 1 Skill Level 5");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, 5)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 1 Skill Level 10");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, 10)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 1 Skill Level 15");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, 15)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 1 Skill Level 20");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 1, 20)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 2 Skill Level 0");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 2, 0)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 2 Skill Level 10");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 2, 10)
-		await new Promise(r => setTimeout(r, 400));
-	}
-	
-	await new Promise(r => setTimeout(r, 4000));
-	console.log("Depth 2 Skill Level 20");
-	await new Promise(r => setTimeout(r, 500));
-	for (let i = 0; i < 40; i++) {
-		engine.postMessage("ucinewgame");
-		await new Promise(r => setTimeout(r, 50));
-		startEngineMove(fen, senderId, 2, 20)
-		await new Promise(r => setTimeout(r, 400));
-	}
-}
-
 async function postEngineMove(engineMove) {
 	if (isEngineRunning) {
 		isEngineRunning = false;
 		let senderId = engineProcessingSenderId;
+		let level = engineCurrentLevel;
 		engineProcessingSenderId = null;
+		engineCurrentLevel = null;
 		
 		await new Promise(r => setTimeout(r, 50));
 		typingOn(senderId).then(data => {console.log(data); });
@@ -327,8 +279,12 @@ async function postEngineMove(engineMove) {
 			.then(position => {
 				if (position.move != null) {
 					console.log(position.board);
-					sendResponse(senderId, "👶 says: " + position.move.san)
-					.then(r => sendResponse(senderId, "Move X (your turn)\n" + position.board));
+					sendResponse(senderId, botLevel[level].emoji + " says: " + position.move.san)
+					.then(r => sendResponse(senderId, "Move X\n" + position.board));
+					
+					if (position.gameOver) {
+						sendResponse(senderId, "Game over! " + position.status)
+					}
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove)
 					sendResponse(senderId, "Error detected *beep boop*");
@@ -340,15 +296,6 @@ async function postEngineMove(engineMove) {
 		return false;
 	}
 }
-
-const botLevel = [
-	{ emoji: '👶', payload: 'level_0', depth: 1, skill: 0},
-	{ emoji: '👧', payload: 'level_1', depth: 2, skill: 1},
-	{ emoji: '🤓', payload: 'level_2', depth: 5, skill: 5},
-	{ emoji: '👨‍🦳', payload: 'level_3', depth: 8, skill: 10},
-	{ emoji: '🧙‍♂️', payload: 'level_4', depth: 12, skill: 15},
-	{ emoji: '👽', payload: 'level_5', depth: 18, skill: 20}
-]
 
 function chatController(message, senderId, payload = null) {
 	if (payload != null) {
@@ -393,11 +340,14 @@ function chatController(message, senderId, payload = null) {
 						console.log(position.board);
 						sendResponse(senderId, "You:\n" + position.board);
 						
-						getEngineLevel(senderId)
-						.then(level => {
-							startEngineMove(position.fen, senderId, botLevel[level].depth, botLevel[level].skill);
-						});
-						//testEngineMove(position.fen, senderId);
+						if (position.gameOver) {
+							sendResponse(senderId, "Game over! " + position.status);
+						} else {
+							getEngineLevel(senderId)
+							.then(level => {
+								startEngineMove(position.fen, senderId, level);
+							});
+						}
 					} else {
 						console.log("Input move is invalid: " + message);
 						sendResponse(senderId, "Invalid move");
