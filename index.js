@@ -407,7 +407,7 @@ function chatController(message, senderId, payload = null) {
 				break;
 			case 'test':
 				let testquickReply = [];
-				for (let i = 0; i < 18; i++) {
+				for (let i = 0; i < 13; i++) {
 					testquickReply.push({content_type: "text", title: i, payload: i});
 				}
 				sendResponse(senderId, "Test:", testquickReply)
