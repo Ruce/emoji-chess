@@ -406,11 +406,12 @@ function chatController(message, senderId, payload = null) {
 				.then(r => sendResponse(senderId, "Choose your opponent:", quickReply));
 				break;
 			case 'test':
-				let quickReply = []
+				let quickReply = [];
 				for (i = 0; i < 18; i++) {
-					quickReply.push({content_type: "text", title: i, payload: i})
+					quickReply.push({content_type: "text", title: i, payload: i});
 				}
 				sendResponse(senderId, "Test:", quickReply)
+				break;
 			case 'white':
 				getBoard(senderId, true)
 				.then(board => {
