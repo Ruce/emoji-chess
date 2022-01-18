@@ -182,7 +182,7 @@ function getAvailableMoves(moves, isWhitesTurn) {
 	
 	if (rook.length > 0) {
 		let titleR = isWhitesTurn ? symbols.pieces.w.r : symbols.pieces.b.r;
-		titleR += " (Bishop)";
+		titleR += " (Rook)";
 		quickReplies.push({content_type: "text", title: titleR, payload: "Piece|rook"});
 	}
 	
