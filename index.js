@@ -394,7 +394,7 @@ async function postEngineMove(engineMove) {
 					sendResponse(senderId, botLevel[level].emoji + " says: " + position.move.san)
 					.then(r => {
 						sendResponse(senderId, "Move X\n" + position.board)
-						.then(r2 => sendResponse(senderId, position.availableMoves.message, position.availableMoves.replies);)
+						.then(r2 => sendResponse(senderId, position.availableMoves.message, position.availableMoves.replies))
 					});
 					
 					if (position.gameOver) {
