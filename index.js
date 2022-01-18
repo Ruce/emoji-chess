@@ -123,7 +123,7 @@ function outputBoard(board, from, isWhitePov = true) {
 	return rows.join("\n");
 }
 
-function availableMoves(moves) {
+function getAvailableMoves(moves, isWhitesTurn) {
 	let quickReplies = [];
 	if (moves.length <= 12) {
 		for (let move of moves) {
@@ -163,19 +163,42 @@ function availableMoves(moves) {
 	}
 	
 	if (pawn.length > 0) {
-		quickReplies.push({content_type: "text", title: "Pawn", payload: "Piece|pawn"});
+		let titleP = isWhitesTurn ? symbols.pieces.w.p : symbols.pieces.b.p;
+		titleP += " (Pawn)";
+		quickReplies.push({content_type: "text", title: titleP, payload: "Piece|pawn"});
 	}
 	
-	let result = {
-		"pawn": pawn,
-		"knight": knight,
-		"bishop": bishop,
-		"rook": rook,
-		"queen": queen,
-		"king": king
-	};
+	if (knight.length > 0) {
+		let titleN = isWhitesTurn ? symbols.pieces.w.n : symbols.pieces.b.n;
+		titleN += " (Knight)";
+		quickReplies.push({content_type: "text", title: titleN, payload: "Piece|knight"});
+	}
 	
-	return result;
+	if (bishop.length > 0) {
+		let titleB = isWhitesTurn ? symbols.pieces.w.b : symbols.pieces.b.b;
+		titleB += " (Bishop)";
+		quickReplies.push({content_type: "text", title: titleB, payload: "Piece|bishop"});
+	}
+	
+	if (rook.length > 0) {
+		let titleR = isWhitesTurn ? symbols.pieces.w.r : symbols.pieces.b.r;
+		titleR += " (Bishop)";
+		quickReplies.push({content_type: "text", title: titleR, payload: "Piece|rook"});
+	}
+	
+	if (queen.length > 0) {
+		let titleQ = isWhitesTurn ? symbols.pieces.w.q : symbols.pieces.b.q;
+		titleQ += " (Queen)";
+		quickReplies.push({content_type: "text", title: titleQ, payload: "Piece|queen"});
+	}
+	
+	if (king.length > 0) {
+		let titleK = isWhitesTurn ? symbols.pieces.w.k : symbols.pieces.b.k;
+		titleK += " (King)";
+		quickReplies.push({content_type: "text", title: titleK, payload: "Piece|king"});
+	}
+	
+	return { message: 'Pick a piece:', replies: quickReplies };
 }
 
 // Example POST method implementation:
@@ -252,7 +275,7 @@ async function newGame(senderId, level) {
 	return {fen: chess.fen(), board: outputBoard(chess.board(), null)};
 }
 
-async function makeMove(senderId, move) {
+async function makeMove(senderId, move, replyAvailableMoves = true) {
 	const client = await createClient();
 	
 	let fen;
@@ -271,6 +294,7 @@ async function makeMove(senderId, move) {
 	let newFen = chess.fen();
 	let gameOver = chess.game_over();
 	let status = null;
+	let availableMoves = null;
 	if (gameOver) {
 		// Game that is in_checkmate is also in_check, therefore call in_checkmate() first
 		if (chess.in_checkmate()) {
@@ -289,6 +313,10 @@ async function makeMove(senderId, move) {
 		if (chess.in_check()) {
 			status = statusCheck;
 		}
+		
+		if (replyAvailableMoves) {
+			let isWhitesTurn = (chess.turn() == 'w');
+			availableMoves = getAvailableMoves(chess.moves(), isWhitesTurn)
 	}
 	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
@@ -296,7 +324,7 @@ async function makeMove(senderId, move) {
 	console.log('New fen: ' + updateRes.rows[0].fen);
 	
 	await client.end();
-	return {move: moveResult, fen: newFen, board: outputBoard(chess.board(), moveResult.from), gameOver: gameOver, status: status};
+	return {move: moveResult, fen: newFen, board: outputBoard(chess.board(), moveResult.from), gameOver: gameOver, status: status, availableMoves: availableMoves};
 }
 
 async function getBoard(senderId, isWhitePov = true) {
@@ -359,18 +387,21 @@ async function postEngineMove(engineMove) {
 		typingOn(senderId).then(data => {console.log(data); });
 		await new Promise(r => setTimeout(r, 1300));
 		
-		makeMove(senderId, engineMove)
+		makeMove(senderId, engineMove, true)
 			.then(position => {
 				if (position.move != null) {
 					console.log(position.board);
 					sendResponse(senderId, botLevel[level].emoji + " says: " + position.move.san)
-					.then(r => sendResponse(senderId, "Move X\n" + position.board));
+					.then(r => {
+						sendResponse(senderId, "Move X\n" + position.board)
+						.then(r2 => sendResponse(senderId, position.availableMoves.message, position.availableMoves.replies);)
+					});
 					
 					if (position.gameOver) {
-						sendResponse(senderId, "Game over! " + position.status)
+						sendResponse(senderId, "Game over! " + position.status);
 					}
 				} else {
-					console.log("Unexpected error with engineMove " + engineMove)
+					console.log("Unexpected error with engineMove " + engineMove);
 					sendResponse(senderId, "Error detected *beep boop*");
 				}
 			})
@@ -438,7 +469,7 @@ function chatController(message, senderId, payload = null) {
 				});
 				break;
 			default:
-				makeMove(senderId, message)
+				makeMove(senderId, message, false)
 				.then(position => {
 					if (position.move != null) {
 						console.log(position.board);
