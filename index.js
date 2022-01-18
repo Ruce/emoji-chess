@@ -123,6 +123,49 @@ function outputBoard(board, from, isWhitePov = true) {
 	return rows.join("\n");
 }
 
+function availableMoves(moves) {
+	let pawn = [];
+	let knight = [];
+	let bishop = [];
+	let rook = [];
+	let queen = [];
+	let king = [];
+	
+	for (const move of moves) {
+		switch (move.charAt(0)) {
+			case "N":
+				knight.push(move);
+				break;
+			case "B":
+				bishop.push(move);
+				break;
+			case "R":
+				rook.push(move);
+				break;
+			case "Q":
+				queen.push(move);
+				break;
+			case "K":
+			case "O":
+				king.push(move);
+				break;
+			default:
+				pawn.push(move);
+		}
+	}
+	
+	let result = {
+		"pawn": pawn,
+		"knight": knight,
+		"bishop": bishop,
+		"rook": rook,
+		"queen": queen,
+		"king": king
+	};
+	
+	return result;
+}
+
 // Example POST method implementation:
 async function postData(url = '', data = {}) {
 	const response = await fetch(url, {
@@ -362,6 +405,12 @@ function chatController(message, senderId, payload = null) {
 				sendResponse(senderId, "Starting a new game...")
 				.then(r => sendResponse(senderId, "Choose your opponent:", quickReply));
 				break;
+			case 'test':
+				let quickReply = []
+				for (i = 0; i < 18; i++) {
+					quickReply.push({content_type: "text", title: i, payload: i})
+				}
+				sendResponse(senderId, "Test:", quickReply)
 			case 'white':
 				getBoard(senderId, true)
 				.then(board => {
