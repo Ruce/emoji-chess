@@ -316,7 +316,8 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 		
 		if (replyAvailableMoves) {
 			let isWhitesTurn = (chess.turn() == 'w');
-			availableMoves = getAvailableMoves(chess.moves(), isWhitesTurn)
+			availableMoves = getAvailableMoves(chess.moves(), isWhitesTurn);
+		}
 	}
 	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
