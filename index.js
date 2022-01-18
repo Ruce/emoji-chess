@@ -30,7 +30,7 @@ const symbols = {
 		b: {
 			p: "♟",
 			n: "🐴",
-			b: "🕴",
+			b: "🐘",
 			r: "🗿",
 			q: "👩‍✈️",
 			k: "🤵"
@@ -408,7 +408,7 @@ function chatController(message, senderId, payload = null) {
 			case 'test':
 				let testquickReply = [];
 				for (let i = 0; i < 13; i++) {
-					testquickReply.push({content_type: "text", title: i, payload: i});
+					testquickReply.push({content_type: "text", title: "Qb3xb2+", payload: i});
 				}
 				sendResponse(senderId, "Test:", testquickReply)
 				break;
