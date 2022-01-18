@@ -124,6 +124,14 @@ function outputBoard(board, from, isWhitePov = true) {
 }
 
 function availableMoves(moves) {
+	let quickReplies = [];
+	if (moves.length <= 12) {
+		for (let move of moves) {
+			quickReplies.push({content_type: "text", title: move, payload: "Move|" + move});
+		}
+		return { message: 'Pick a move:', replies: quickReplies };
+	}
+	
 	let pawn = [];
 	let knight = [];
 	let bishop = [];
@@ -131,7 +139,7 @@ function availableMoves(moves) {
 	let queen = [];
 	let king = [];
 	
-	for (const move of moves) {
+	for (let move of moves) {
 		switch (move.charAt(0)) {
 			case "N":
 				knight.push(move);
@@ -407,8 +415,9 @@ function chatController(message, senderId, payload = null) {
 				break;
 			case 'test':
 				let testquickReply = [];
+				let longpayload = "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789";
 				for (let i = 0; i < 13; i++) {
-					testquickReply.push({content_type: "text", title: "Qb3xb2+", payload: i});
+					testquickReply.push({content_type: "text", title: "Qb3xb2+", payload: longpayload});
 				}
 				sendResponse(senderId, "Test:", testquickReply)
 				break;
