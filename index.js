@@ -392,14 +392,15 @@ async function postEngineMove(engineMove) {
 			.then(position => {
 				if (position.move != null) {
 					console.log(position.board);
-					sendResponse(senderId, botLevel[level].emoji + " says: " + position.move.san)
-					.then(r => {
-						sendResponse(senderId, "Move X\n" + position.board)
-						.then(r2 => sendResponse(senderId, position.availableMoves.message, position.availableMoves.replies))
-					});
 					
+					let response = botLevel[level].emoji + " says: " + position.move.san;
+					response += "\n\n" + "Move X\n" + position.board;
 					if (position.gameOver) {
-						sendResponse(senderId, "Game over! " + position.status);
+						response += "\n\n" + "Game over! " + position.status;
+						sendResponse(senderId, response);
+					} else {
+						response += "\n\n" + position.availableMoves.message;
+						sendResponse(senderId, response, position.availableMoves.replies)
 					}
 				} else {
 					console.log("Unexpected error with engineMove " + engineMove);
