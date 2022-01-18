@@ -246,7 +246,7 @@ async function sendResponse(senderId, message, quickReplies = null) {
 	});
 	
 	// Add a short delay so that subsequent messages can be sent in order by chaining promises
-	await new Promise(r => setTimeout(r, 250));
+	await new Promise(r => setTimeout(r, 350));
 	return true;
 }
 
