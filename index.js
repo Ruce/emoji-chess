@@ -225,7 +225,13 @@ async function typingOn(senderId) {
 	return response;
 }
 
-async function sendResponse(senderId, message, quickReplies = null) {
+async function sendResponse(senderId, message, sendDelay, quickReplies = null) {
+	if (sendDelay && sendDelay > 0) {
+		// Turn on typing indicator and add a short delay so that messages feel like they're being typed out
+		typingOn(senderId);
+		await new Promise(r => setTimeout(r, sendDelay));
+	}
+	
 	let messageBody = {
 		messaging_type: "RESPONSE",
 		recipient: {
@@ -245,8 +251,6 @@ async function sendResponse(senderId, message, quickReplies = null) {
 		console.log(data); // JSON data parsed by `data.json()` call
 	});
 	
-	// Add a short delay so that subsequent messages can be sent in order by chaining promises
-	await new Promise(r => setTimeout(r, 350));
 	return true;
 }
 
@@ -385,30 +389,27 @@ async function postEngineMove(engineMove) {
 		engineProcessingSenderId = null;
 		engineCurrentLevel = null;
 		
-		await new Promise(r => setTimeout(r, 50));
-		typingOn(senderId).then(data => {console.log(data); });
-		await new Promise(r => setTimeout(r, 1300));
-		
 		makeMove(senderId, engineMove, true)
-			.then(position => {
-				if (position.move != null) {
-					console.log(position.board);
-					
-					let response = botLevel[level].emoji + " says: " + position.move.san;
-					response += "\n\n" + "Move X\n" + position.board;
-					if (position.gameOver) {
-						response += "\n\n" + "Game over! " + position.status;
-						sendResponse(senderId, response);
-					} else {
-						response += "\n\n" + position.availableMoves.message;
-						sendResponse(senderId, response, position.availableMoves.replies)
-					}
+		.then(position => {
+			if (position.move == null) {
+				throw 'Unexpected error with engineMove ' + engineMove;
+			}
+			
+			console.log(position.board);
+			let response = botLevel[level].emoji + " says: " + position.move.san;
+			response += "\n\n" + "Move X\n" + position.board;
+			
+			sendResponse(senderId, response, 1000)
+			.then(r => {
+				if (position.gameOver) {
+					sendResponse(senderId, "Game over! " + position.status, 500);
 				} else {
-					console.log("Unexpected error with engineMove " + engineMove);
-					sendResponse(senderId, "Error detected *beep boop*");
+					sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies)
 				}
-			})
-			.catch(e => console.log(e));
+			});
+		})
+		.catch(e => console.log(e));
+		
 		return true;
 	} else {
 		return false;
@@ -434,7 +435,7 @@ function chatController(message, senderId, payload = null) {
 				
 				newGame(senderId, level)
 				.then(position => {
-					sendResponse(senderId, "New game:\n" + position.board);
+					sendResponse(senderId, "New game:\n" + position.board, 0);
 				})
 				.catch(e => console.log(e));
 				break;
@@ -448,8 +449,8 @@ function chatController(message, senderId, payload = null) {
 				Object.entries(botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
 				});
-				sendResponse(senderId, "Starting a new game...")
-				.then(r => sendResponse(senderId, "Choose your opponent:", quickReply));
+				sendResponse(senderId, "Starting a new game...", 0)
+				.then(r => sendResponse(senderId, "Choose your opponent:", 1000, quickReply));
 				break;
 			case 'test':
 				let testquickReply = [];
@@ -457,18 +458,18 @@ function chatController(message, senderId, payload = null) {
 				for (let i = 0; i < 13; i++) {
 					testquickReply.push({content_type: "text", title: "Qb3xb2+", payload: longpayload});
 				}
-				sendResponse(senderId, "Test:", testquickReply)
+				sendResponse(senderId, "Test:", 0, testquickReply)
 				break;
 			case 'white':
 				getBoard(senderId, true)
 				.then(board => {
-					sendResponse(senderId, "White POV\n" + board);
+					sendResponse(senderId, "White POV\n" + board, 0);
 				});
 				break;
 			case 'black':
 				getBoard(senderId, false)
 				.then(board => {
-					sendResponse(senderId, "Black POV\n" + board);
+					sendResponse(senderId, "Black POV\n" + board, 0);
 				});
 				break;
 			default:
@@ -476,10 +477,10 @@ function chatController(message, senderId, payload = null) {
 				.then(position => {
 					if (position.move != null) {
 						console.log(position.board);
-						sendResponse(senderId, "You:\n" + position.board);
+						sendResponse(senderId, "You:\n" + position.board, 0);
 						
 						if (position.gameOver) {
-							sendResponse(senderId, "Game over! " + position.status);
+							sendResponse(senderId, "Game over! " + position.status, 0);
 						} else {
 							getEngineLevel(senderId)
 							.then(level => {
@@ -488,7 +489,7 @@ function chatController(message, senderId, payload = null) {
 						}
 					} else {
 						console.log("Input move is invalid: " + message);
-						sendResponse(senderId, "Invalid move");
+						sendResponse(senderId, "Invalid move", 0);
 					}
 				})
 				.catch(e => console.log(e));
