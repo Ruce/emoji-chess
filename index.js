@@ -487,7 +487,7 @@ function chatController(message, senderId, payload = null) {
 				.then(position => {
 					if (position.move != null) {
 						console.log(position.board);
-						sendResponse(senderId, "Your move: " + message "\n\nMove X\n" + position.board, 0);
+						sendResponse(senderId, "Your move: " + message + "\n\nMove X\n" + position.board, 0);
 						
 						if (position.gameOver) {
 							sendResponse(senderId, "Game over! " + position.status, 0);
