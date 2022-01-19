@@ -289,9 +289,26 @@ async function newGame(senderId, level) {
 	// Connect to the PostgreSQL database
 	const client = await createClient();
 	
+	// TO DO: Check for existence of game for senderId
 	const chess = new Chess();
 	const update = 'UPDATE games SET fen = $1, level = $2 WHERE sender_id = $3 RETURNING *;'
 	const updateRes = await client.query(update, [chess.fen(), level, senderId]);
+	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
+	
+	await client.end();
+	return {fen: chess.fen(), board: outputBoard(chess.board(), null)};
+}
+
+async function loadGame(senderId, fen) {
+	// WARNING: DEBUG ONLY
+	// Prone to SQL injection
+	
+	// Connect to the PostgreSQL database
+	const client = await createClient();
+	
+	const chess = new Chess();
+	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
+	const updateRes = await client.query(update, [fen, senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
@@ -460,6 +477,13 @@ function chatController(message, senderId, payload = null) {
 			default:
 				console.error("ERROR - Unknown payload: " + payload);
 		}
+	} else if (message.slice(0, 11) == 'debug load ') {
+		// DEBUG ONLY
+		loadGame(senderId, message.slice(11))
+		.then(position => {
+			sendResponse(senderId, "Loaded custom position:\n" + position.board, 0);
+		})
+		.catch(e => console.log(e));
 	} else {
 		switch(message.toLowerCase()) {
 			case 'new game':
