@@ -338,9 +338,8 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 		}
 		
 		if (replyAvailableMoves) {
-			let isWhitesTurn = (chess.turn() == 'w');
 			console.log(chess.moves());
-			availableMoves = getAvailableMoves(chess.moves(), isWhitesTurn);
+			availableMoves = getAvailableMoves(chess.moves({ verbose: true }));
 		}
 	}
 	
