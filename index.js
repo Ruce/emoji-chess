@@ -123,13 +123,30 @@ function outputBoard(board, from, isWhitePov = true) {
 	return rows.join("\n");
 }
 
-function getAvailableMoves(moves, isWhitesTurn) {
+function formatMove(move, piece, color) {
+	// Formats a SAN move to replace the piece letter with its emoji
+	// Except for pawn moves and castling
+	// e.g. Nf3 -> 🦄f3
+	if (piece == 'p' || move.charAt(0) == 'O') {
+		return move;
+	} else {
+		return symbols.pieces[color][piece] + move.slice(1);
+	}
+}
+
+function getAvailableMoves(moves) {
+	if (moves.length == 0) {
+		throw 'No available moves supplied';
+	}
+	
 	let quickReplies = [];
+	let isWhitesTurn = ( moves[0].color == 'w' )
+	
 	if (moves.length <= 12) {
 		for (let move of moves) {
-			quickReplies.push({content_type: "text", title: move, payload: "Move|" + move});
+			quickReplies.push({ content_type: "text", title: formatMove(move.san, move.piece, move.color), payload: "Move|" + move.san });
 		}
-		return { message: 'Pick a move:', replies: quickReplies };
+		return { message: 'Your turn! Pick a move:', replies: quickReplies };
 	}
 	
 	let pawn = [];
@@ -140,25 +157,27 @@ function getAvailableMoves(moves, isWhitesTurn) {
 	let king = [];
 	
 	for (let move of moves) {
-		switch (move.charAt(0)) {
-			case "N":
+		switch (move.piece) {
+			case "n":
 				knight.push(move);
 				break;
-			case "B":
+			case "b":
 				bishop.push(move);
 				break;
-			case "R":
+			case "r":
 				rook.push(move);
 				break;
-			case "Q":
+			case "q":
 				queen.push(move);
 				break;
-			case "K":
-			case "O":
+			case "k":
 				king.push(move);
 				break;
-			default:
+			case "p":
 				pawn.push(move);
+				break;
+			default:
+				throw 'Unknown move with piece ' + move.piece;
 		}
 	}
 	
@@ -198,7 +217,7 @@ function getAvailableMoves(moves, isWhitesTurn) {
 		quickReplies.push({content_type: "text", title: titleK, payload: "Piece|king"});
 	}
 	
-	return { message: 'Pick a piece:', replies: quickReplies };
+	return { message: 'Your turn! Pick a piece:', replies: quickReplies };
 }
 
 // Example POST method implementation:
@@ -396,7 +415,7 @@ async function postEngineMove(engineMove) {
 			}
 			
 			console.log(position.board);
-			let response = botLevel[level].emoji + " says: " + position.move.san;
+			let response = botLevel[level].emoji + "'s move: " + position.move.san;
 			response += "\n\n" + "Move X\n" + position.board;
 			
 			sendResponse(senderId, response, 1000)
@@ -452,14 +471,6 @@ function chatController(message, senderId, payload = null) {
 				sendResponse(senderId, "Starting a new game...", 0)
 				.then(r => sendResponse(senderId, "Choose your opponent:", 1000, quickReply));
 				break;
-			case 'test':
-				let testquickReply = [];
-				let longpayload = "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789";
-				for (let i = 0; i < 13; i++) {
-					testquickReply.push({content_type: "text", title: "Qb3xb2+", payload: longpayload});
-				}
-				sendResponse(senderId, "Test:", 0, testquickReply)
-				break;
 			case 'white':
 				getBoard(senderId, true)
 				.then(board => {
@@ -477,7 +488,7 @@ function chatController(message, senderId, payload = null) {
 				.then(position => {
 					if (position.move != null) {
 						console.log(position.board);
-						sendResponse(senderId, "You:\n" + position.board, 0);
+						sendResponse(senderId, "Your move: " + message "\n\nMove X\n" + position.board, 0);
 						
 						if (position.gameOver) {
 							sendResponse(senderId, "Game over! " + position.status, 0);
