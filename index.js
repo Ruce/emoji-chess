@@ -152,14 +152,24 @@ function encodeMoves(moves) {
 	// [{'R on a1': ['Ra2', 'Ra3', 'Ra4', 'Ra5', 'Ra6', 'Ra7', 'Ra8', 'Rab1']},
 	//	{'R on c1': ['Rcb1', {'c-file': ['Rc2', 'Rc3', 'Rc4', 'Rc5', 'Rc6', 'Rc7', 'Rc8']}, 'Rd1', 'Re1', 'Rf1', 'Rg1', 'Rh1']}]
 	
+	if (moves.constructor.name !== 'Array' || moves.length === 0) {
+		throw 'Invalid argument `moves` in encodeMoves()';
+	}
+	
+	function sanitiseMove(move) {
+		// Remove the check (+) and checkmate (#) markers on move notation
+		// So that they do not provide hints when displaying possible moves
+		return move.replace('+', '').replace('#', '');
+	}
+	
 	function splitByFile(pieceMoves) {
 		let files = {};
 		for (const move of pieceMoves) {
 			const file = move.to.charAt(0);
 			if (files.hasOwnProperty(file)) {
-				files[file].push(move.san);
+				files[file].push(sanitiseMove(move.san));
 			} else {
-				files[file] = [move.san];
+				files[file] = [sanitiseMove(move.san)];
 			}
 		}
 		
@@ -176,9 +186,13 @@ function encodeMoves(moves) {
 		return pieceTree;
 	}
 	
+	let color = moves[0].color;
+	let piece = moves[0].piece;
+	let pieceEmoji = symbols.pieces[color][piece];
+	
 	let payload = [];
 	if (moves.length <= 12) {
-		payload = moves.map(move => move.san);
+		payload = moves.map(move => sanitiseMove(move.san));
 	} else {
 		// Is there more than one instance of this piece on the board? (e.g. 2 knights, 2 bishops)
 		// If so, separate moves based on piece instance and analyse individually
@@ -196,16 +210,18 @@ function encodeMoves(moves) {
 				if (pieceInstances[from].length == 1) {
 					// Only a single legal move for this piece instance,
 					// so display the available move and don't branch further
-					payload.push(pieceInstances[from][0].san);
+					payload.push(sanitiseMove(pieceInstances[from][0].san));
 				} else if (pieceInstances[from].length <= 12) {
 					// Since there are 12 or fewer legal moves for this piece instance,
 					// next quick reply can display all moves
-					payload.push({ [from]: pieceInstances[from].map(move => move.san) });
+					let optionName = `${pieceEmoji} on ${from}`;
+					payload.push({ [optionName]: pieceInstances[from].map(move => sanitiseMove(move.san)) });
 				} else {
 					// More than 12 legal moves for this piece instance
 					// Further split the destinations by files
 					let pieceTree = splitByFile(pieceInstances[from]);
-					payload.push({ [from]: pieceTree });
+					let optionName = `${pieceEmoji} on ${from}`;
+					payload.push({ [optionName]: pieceTree });
 				}
 			}
 		} else {

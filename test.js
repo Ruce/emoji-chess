@@ -182,6 +182,7 @@ console.log(chess.ascii())
 
 let verboseMoves = chess.moves({verbose:true})
 let encoded = encodeMoves(verboseMoves)
+console.log(verboseMoves)
 console.log(JSON.stringify(encoded))
 console.log(encoded[1]['c1'])
 
