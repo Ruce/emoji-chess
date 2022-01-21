@@ -28,6 +28,90 @@ const symbols = {
 	}
 }
 
+function encodeMoves(moves) {
+	// Divides up available moves for a particular piece (knight, bishop, etc.) into a tree
+	// Where each layer of the tree has no more than 12 nodes
+	// Returns a payload that can be decoded and used as the quick reply payload
+	
+	// Example tree 1 (one layer):
+	// Knights at starting position for white
+	// ['Na3', 'Nc3', 'Nf3', 'Nh3']
+	
+	// Example tree 2 (two layers):
+	// Rook on a1 with an otherwise empty board
+	// [{'a-file': ['Ra2', 'Ra3', 'Ra4', 'Ra5', 'Ra6', 'Ra7', 'Ra8']}, 'Rb1', 'Rc1', 'Rd1', 'Re1', 'Rf1', 'Rg1', 'Rh1']
+	
+	// Example tree 3 (three layers):
+	// Rooks on a1 and c1 with an otherwise empty board
+	// [{'R on a1': ['Ra2', 'Ra3', 'Ra4', 'Ra5', 'Ra6', 'Ra7', 'Ra8', 'Rab1']},
+	//	{'R on c1': ['Rcb1', {'c-file': ['Rc2', 'Rc3', 'Rc4', 'Rc5', 'Rc6', 'Rc7', 'Rc8']}, 'Rd1', 'Re1', 'Rf1', 'Rg1', 'Rh1']}]
+	
+	function splitByFile(pieceMoves) {
+		let files = {};
+		for (const move of pieceMoves) {
+			const file = move.to.charAt(0);
+			if (files.hasOwnProperty(file)) {
+				files[file].push(move.san);
+			} else {
+				files[file] = [move.san];
+			}
+		}
+		
+		let pieceTree = [];
+		for (const file in files) {
+			if (files[file].length == 1) {
+				pieceTree.push(files[file][0]);
+			} else {
+				const fileName = `${file}-file`;
+				pieceTree.push({ [fileName]: files[file] });
+			}
+		}
+		
+		return pieceTree;
+	}
+	
+	let payload = [];
+	if (moves.length <= 12) {
+		payload = moves.map(move => move.san);
+	} else {
+		// Is there more than one instance of this piece on the board? (e.g. 2 knights, 2 bishops)
+		// If so, separate moves based on piece instance and analyse individually
+		// There cannot be more than 10 instances of a piece when playing regular chess:
+		// e.g. all 8 pawns promoted to knights + 2 starting knights = 10 instances of knights
+		let origins = new Set();
+		for (const move of moves) { origins.add(move.from); }
+		if (origins.size > 12) {
+			throw 'Unexpectedly large number of piece instances: ' + String(origins.size);
+		} else if (origins.size > 1) {
+			let pieceInstances = {};
+			origins.forEach((from) => pieceInstances[from] = []);
+			for (const move of moves) { pieceInstances[move.from].push(move); }
+			for (const from in pieceInstances) {
+				if (pieceInstances[from].length == 1) {
+					// Only a single legal move for this piece instance,
+					// so display the available move and don't branch further
+					payload.push(pieceInstances[from][0].san);
+				} else if (pieceInstances[from].length <= 12) {
+					// Since there are 12 or fewer legal moves for this piece instance,
+					// next quick reply can display all moves
+					payload.push({ [from]: pieceInstances[from].map(move => move.san) });
+				} else {
+					// More than 12 legal moves for this piece instance
+					// Further split the destinations by files
+					let pieceTree = splitByFile(pieceInstances[from]);
+					payload.push({ [from]: pieceTree });
+				}
+			}
+		} else {
+			// Only a single piece but it has more than 12 legal moves
+			// Further split the destinations by files
+			payload = splitByFile(moves);
+		}
+	}
+	
+	return payload;
+}
+
 function availableMoves(moves) {
 	let pawn = [];
 	let knight = [];
@@ -71,7 +155,7 @@ function availableMoves(moves) {
 	return result;
 }
 
-const chess = new Chess("rnbqkbnr/3ppppp/ppp5/8/8/4PN2/PPPPBPPP/RNBQK2R w KQkq - 0 4"); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+const chess = new Chess("8/8/8/8/8/8/8/R1R5 w - - 0 1"); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 //const chess = new Chess("3qkbnr/pPpppppp/4b3/8/1P1P4/PR1RP3/1N1B1PPP/3QKBN1 w - - 0 1");
 //const chess = new Chess("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4");
 
@@ -92,11 +176,14 @@ for (let k = 0; k < 3; k++) {
 const board = chess.board()
 
 console.log(chess.moves())
-console.log(chess.moves({verbose: true}))
 console.log(chess.pgn())
 console.log(chess.fen())
 console.log(chess.ascii())
-//console.log(board)
+
+let verboseMoves = chess.moves({verbose:true})
+let encoded = encodeMoves(verboseMoves)
+console.log(JSON.stringify(encoded))
+console.log(encoded[1]['c1'])
 
 //console.log('8️⃣🕋🐴🏃🏿👸🏿🤴🏿🏃🏿🐴🕋7️⃣️♟♟️♟️♟️♟️♟️♟️♟️6️⃣⬜⬛⬜⬛⬜⬛⬜⬛5️⃣⬛⬜⬛⬜⬛⬜⬛⬜4️⃣⬜⬛⬜⬛⬜⬛⬜⬛3️⃣⬛⬜⬛⬜⬛⬜⬛⬜2️⃣🕯️🕯️🕯️🕯️🕯️🕯️🕯️🕯️1️⃣🏰🦄🏃🏻👸🏻🤴🏻🏃🏻🦄🏰🏁🇦​🇧​🇨​🇩​🇪​🇫​🇬​🇭')
 

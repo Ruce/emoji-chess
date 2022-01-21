@@ -134,6 +134,90 @@ function formatMove(move, piece, color) {
 	}
 }
 
+function encodeMoves(moves) {
+	// Divides up available moves for a particular piece (knight, bishop, etc.) into a tree
+	// Where each layer of the tree has no more than 12 nodes
+	// Returns a payload that can be decoded and used as the quick reply payload
+	
+	// Example tree 1 (one layer):
+	// Knights at starting position for white
+	// ['Na3', 'Nc3', 'Nf3', 'Nh3']
+	
+	// Example tree 2 (two layers):
+	// Rook on a1 with an otherwise empty board
+	// [{'a-file': ['Ra2', 'Ra3', 'Ra4', 'Ra5', 'Ra6', 'Ra7', 'Ra8']}, 'Rb1', 'Rc1', 'Rd1', 'Re1', 'Rf1', 'Rg1', 'Rh1']
+	
+	// Example tree 3 (three layers):
+	// Rooks on a1 and c1 with an otherwise empty board
+	// [{'R on a1': ['Ra2', 'Ra3', 'Ra4', 'Ra5', 'Ra6', 'Ra7', 'Ra8', 'Rab1']},
+	//	{'R on c1': ['Rcb1', {'c-file': ['Rc2', 'Rc3', 'Rc4', 'Rc5', 'Rc6', 'Rc7', 'Rc8']}, 'Rd1', 'Re1', 'Rf1', 'Rg1', 'Rh1']}]
+	
+	function splitByFile(pieceMoves) {
+		let files = {};
+		for (const move of pieceMoves) {
+			const file = move.to.charAt(0);
+			if (files.hasOwnProperty(file)) {
+				files[file].push(move.san);
+			} else {
+				files[file] = [move.san];
+			}
+		}
+		
+		let pieceTree = [];
+		for (const file in files) {
+			if (files[file].length == 1) {
+				pieceTree.push(files[file][0]);
+			} else {
+				const fileName = `${file}-file`;
+				pieceTree.push({ [fileName]: files[file] });
+			}
+		}
+		
+		return pieceTree;
+	}
+	
+	let payload = [];
+	if (moves.length <= 12) {
+		payload = moves.map(move => move.san);
+	} else {
+		// Is there more than one instance of this piece on the board? (e.g. 2 knights, 2 bishops)
+		// If so, separate moves based on piece instance and analyse individually
+		// There cannot be more than 10 instances of a piece when playing regular chess:
+		// e.g. all 8 pawns promoted to knights + 2 starting knights = 10 instances of knights
+		let origins = new Set();
+		for (const move of moves) { origins.add(move.from); }
+		if (origins.size > 12) {
+			throw 'Unexpectedly large number of piece instances: ' + String(origins.size);
+		} else if (origins.size > 1) {
+			let pieceInstances = {};
+			origins.forEach((from) => pieceInstances[from] = []);
+			for (const move of moves) { pieceInstances[move.from].push(move); }
+			for (const from in pieceInstances) {
+				if (pieceInstances[from].length == 1) {
+					// Only a single legal move for this piece instance,
+					// so display the available move and don't branch further
+					payload.push(pieceInstances[from][0].san);
+				} else if (pieceInstances[from].length <= 12) {
+					// Since there are 12 or fewer legal moves for this piece instance,
+					// next quick reply can display all moves
+					payload.push({ [from]: pieceInstances[from].map(move => move.san) });
+				} else {
+					// More than 12 legal moves for this piece instance
+					// Further split the destinations by files
+					let pieceTree = splitByFile(pieceInstances[from]);
+					payload.push({ [from]: pieceTree });
+				}
+			}
+		} else {
+			// Only a single piece but it has more than 12 legal moves
+			// Further split the destinations by files
+			payload = splitByFile(moves);
+		}
+	}
+	
+	return payload;
+}
+
 function getAvailableMoves(moves) {
 	if (moves.length == 0) {
 		throw 'No available moves supplied';
@@ -143,78 +227,84 @@ function getAvailableMoves(moves) {
 	let isWhitesTurn = ( moves[0].color == 'w' )
 	
 	if (moves.length <= 12) {
-		for (let move of moves) {
+		for (const move of moves) {
 			quickReplies.push({ content_type: "text", title: formatMove(move.san, move.piece, move.color), payload: "Move|" + move.san });
 		}
 		return { message: 'Your turn! Pick a move:', replies: quickReplies };
 	}
 	
-	let pawn = [];
-	let knight = [];
-	let bishop = [];
-	let rook = [];
-	let queen = [];
-	let king = [];
+	let pawnMoves = [];
+	let knightMoves = [];
+	let bishopMoves = [];
+	let rookMoves = [];
+	let queenMoves = [];
+	let kingMoves = [];
 	
-	for (let move of moves) {
+	for (const move of moves) {
 		switch (move.piece) {
 			case "n":
-				knight.push(move);
+				knightMoves.push(move);
 				break;
 			case "b":
-				bishop.push(move);
+				bishopMoves.push(move);
 				break;
 			case "r":
-				rook.push(move);
+				rookMoves.push(move);
 				break;
 			case "q":
-				queen.push(move);
+				queenMoves.push(move);
 				break;
 			case "k":
-				king.push(move);
+				kingMoves.push(move);
 				break;
 			case "p":
-				pawn.push(move);
+				pawnMoves.push(move);
 				break;
 			default:
 				throw 'Unknown move with piece ' + move.piece;
 		}
 	}
 	
-	if (pawn.length > 0) {
+	if (pawnMoves.length > 0) {
 		let titleP = isWhitesTurn ? symbols.pieces.w.p : symbols.pieces.b.p;
 		titleP += " (Pawn)";
-		quickReplies.push({content_type: "text", title: titleP, payload: "Piece|pawn"});
+		let payloadP = "Tree|" + JSON.stringify(encodeMoves(pawnMoves));
+		quickReplies.push({content_type: "text", title: titleP, payload: payloadP});
 	}
 	
-	if (knight.length > 0) {
+	if (knightMoves.length > 0) {
 		let titleN = isWhitesTurn ? symbols.pieces.w.n : symbols.pieces.b.n;
 		titleN += " (Knight)";
-		quickReplies.push({content_type: "text", title: titleN, payload: "Piece|knight"});
+		let payloadN = "Tree|" + JSON.stringify(encodeMoves(knightMoves));
+		quickReplies.push({content_type: "text", title: titleN, payload: payloadN});
 	}
 	
-	if (bishop.length > 0) {
+	if (bishopMoves.length > 0) {
 		let titleB = isWhitesTurn ? symbols.pieces.w.b : symbols.pieces.b.b;
 		titleB += " (Bishop)";
-		quickReplies.push({content_type: "text", title: titleB, payload: "Piece|bishop"});
+		let payloadB = "Tree|" + JSON.stringify(encodeMoves(bishopMoves));
+		quickReplies.push({content_type: "text", title: titleB, payload: payloadB});
 	}
 	
-	if (rook.length > 0) {
+	if (rookMoves.length > 0) {
 		let titleR = isWhitesTurn ? symbols.pieces.w.r : symbols.pieces.b.r;
 		titleR += " (Rook)";
-		quickReplies.push({content_type: "text", title: titleR, payload: "Piece|rook"});
+		let payloadR = "Tree|" + JSON.stringify(encodeMoves(rookMoves));
+		quickReplies.push({content_type: "text", title: titleR, payload: payloadR});
 	}
 	
-	if (queen.length > 0) {
+	if (queenMoves.length > 0) {
 		let titleQ = isWhitesTurn ? symbols.pieces.w.q : symbols.pieces.b.q;
 		titleQ += " (Queen)";
-		quickReplies.push({content_type: "text", title: titleQ, payload: "Piece|queen"});
+		let payloadQ = "Tree|" + JSON.stringify(encodeMoves(queenMoves));
+		quickReplies.push({content_type: "text", title: titleQ, payload: payloadQ});
 	}
 	
-	if (king.length > 0) {
+	if (kingMoves.length > 0) {
 		let titleK = isWhitesTurn ? symbols.pieces.w.k : symbols.pieces.b.k;
 		titleK += " (King)";
-		quickReplies.push({content_type: "text", title: titleK, payload: "Piece|king"});
+		let payloadK = "Tree|" + JSON.stringify(encodeMoves(kingMoves));
+		quickReplies.push({content_type: "text", title: titleK, payload: payloadK});
 	}
 	
 	return { message: 'Your turn! Pick a piece:', replies: quickReplies };
@@ -306,9 +396,9 @@ async function loadGame(senderId, fen) {
 	// Connect to the PostgreSQL database
 	const client = await createClient();
 	
-	const chess = new Chess();
+	const chess = new Chess(fen);
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-	const updateRes = await client.query(update, [fen, senderId]);
+	const updateRes = await client.query(update, [chess.fen(), senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
@@ -392,6 +482,29 @@ async function getEngineLevel(senderId) {
 	return level;
 }
 
+function playPlayerMove(senderId, move) {
+	makeMove(senderId, move, false)
+	.then(position => {
+		if (position.move != null) {
+			console.log(position.board);
+			sendResponse(senderId, "Your move: " + move + "\n\nMove X\n" + position.board, 0);
+			
+			if (position.gameOver) {
+				sendResponse(senderId, "Game over! " + position.status, 0);
+			} else {
+				getEngineLevel(senderId)
+				.then(level => {
+					startEngineMove(position.fen, senderId, level);
+				});
+			}
+		} else {
+			console.log("Input move is invalid: " + move);
+			sendResponse(senderId, "Invalid move", 0);
+		}
+	})
+	.catch(e => console.log(e));
+}
+
 var isEngineRunning = false;
 var engineProcessingSenderId;
 var engineCurrentLevel;
@@ -453,29 +566,63 @@ async function postEngineMove(engineMove) {
 
 function chatController(message, senderId, payload = null) {
 	if (payload != null) {
-		switch(payload) {
-			case botLevel[0].payload:
-			case botLevel[1].payload:
-			case botLevel[2].payload:
-			case botLevel[3].payload:
-			case botLevel[4].payload:
-			case botLevel[5].payload:
-				let level;
-				for (let i = 0; i < botLevel.length; i++) {
-					if (payload == botLevel[i].payload) {
-						level = i;
-						break;
+		if (payload.split('|').length > 1) {
+			let encoded = payload.split('|');
+			switch(encoded[0]) {
+				case 'Move':
+					playPlayerMove(senderId, encoded[1]);
+					break;
+				case 'Tree':
+					let tree = JSON.parse(encoded[1]);
+					let nextPayload = [];
+					for (const node of tree) {
+						if (node.constructor.name === 'Object') {
+							// Option with another nested layer of quick replies
+							let optionName;
+							let nextTree;
+							for (const option in node) {
+								optionName = option;
+								nextTree = JSON.stringify(node[option]);
+							}
+							nextPayload.push({ content_type: "text", title: optionName, payload: "Tree|" + nextTree });
+						} else if (node.constructor.name === 'String') {
+							// Option is a move
+							nextPayload.push({ content_type: "text", title: node, payload: "Move|" + node });
+						} else {
+							throw 'Unexpected object type in payload tree';
+						}
 					}
-				}
-				
-				newGame(senderId, level)
-				.then(position => {
-					sendResponse(senderId, "New game:\n" + position.board, 0);
-				})
-				.catch(e => console.log(e));
-				break;
-			default:
-				console.error("ERROR - Unknown payload: " + payload);
+					sendResponse(senderId, "Options:", 0, nextPayload);
+					
+					break;
+				default:
+					console.error("ERROR - Unknown payload: " + payload);
+			}
+		} else {
+			switch(payload) {
+				case botLevel[0].payload:
+				case botLevel[1].payload:
+				case botLevel[2].payload:
+				case botLevel[3].payload:
+				case botLevel[4].payload:
+				case botLevel[5].payload:
+					let level;
+					for (let i = 0; i < botLevel.length; i++) {
+						if (payload == botLevel[i].payload) {
+							level = i;
+							break;
+						}
+					}
+					
+					newGame(senderId, level)
+					.then(position => {
+						sendResponse(senderId, "New game:\n" + position.board, 0);
+					})
+					.catch(e => console.log(e));
+					break;
+				default:
+					console.error("ERROR - Unknown payload: " + payload);
+			}
 		}
 	} else if (message.slice(0, 11) == 'debug load ') {
 		// DEBUG ONLY
@@ -507,26 +654,7 @@ function chatController(message, senderId, payload = null) {
 				});
 				break;
 			default:
-				makeMove(senderId, message, false)
-				.then(position => {
-					if (position.move != null) {
-						console.log(position.board);
-						sendResponse(senderId, "Your move: " + message + "\n\nMove X\n" + position.board, 0);
-						
-						if (position.gameOver) {
-							sendResponse(senderId, "Game over! " + position.status, 0);
-						} else {
-							getEngineLevel(senderId)
-							.then(level => {
-								startEngineMove(position.fen, senderId, level);
-							});
-						}
-					} else {
-						console.log("Input move is invalid: " + message);
-						sendResponse(senderId, "Invalid move", 0);
-					}
-				})
-				.catch(e => console.log(e));
+				playPlayerMove(senderId, message);
 		}
 	}
 }
