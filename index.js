@@ -3,19 +3,20 @@
 // Imports dependencies and set up http server
 const
 	express = require('express'),
-	bodyParser = require('body-parser'),
 	fetch = require('node-fetch'),
+	ChatInterface = require('chatInterface.js'),
+	bodyParser = require('body-parser'),
 	app = express().use(bodyParser.json()); // creates express http server
 
 const { Client } = require('pg');
 const { URLSearchParams } = require('url');
-const { Chess } = require('chess.js')
+const { Chess } = require('chess.js');
 
 var Stockfish;
 var engine;
 var INIT_ENGINE = require("stockfish");
 
-const messageUrl = 'https://graph.facebook.com/v12.0/me/messages?' + new URLSearchParams({access_token: process.env.PAGE_ACCESS_TOKEN})
+const chatInterface = new ChatInterface('https://graph.facebook.com/v12.0/me/messages?', process.env.PAGE_ACCESS_TOKEN);
 
 const symbols = {
 	pieces: {
@@ -326,59 +327,6 @@ function getAvailableMoves(moves) {
 	return { message: 'Your turn! Pick a piece:', replies: quickReplies };
 }
 
-// Example POST method implementation:
-async function postData(url = '', data = {}) {
-	const response = await fetch(url, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify(data)
-	});
-	return response.json(); // parses JSON response into native JavaScript objects
-}
-
-async function typingOn(senderId) {
-	let body = {
-		recipient: {
-			id: senderId
-		},
-		sender_action: "typing_on"
-	};
-	
-	let response = await postData(messageUrl, body);
-	return response;
-}
-
-async function sendResponse(senderId, message, sendDelay, quickReplies = null) {
-	if (sendDelay && sendDelay > 0) {
-		// Turn on typing indicator and add a short delay so that messages feel like they're being typed out
-		typingOn(senderId);
-		await new Promise(r => setTimeout(r, sendDelay));
-	}
-	
-	let messageBody = {
-		messaging_type: "RESPONSE",
-		recipient: {
-			id: senderId
-		},
-		message: {
-			text: message
-		}
-	}
-	
-	if (quickReplies !== null) {
-		messageBody.message.quick_replies = quickReplies;
-	}
-	
-	postData(messageUrl, messageBody)
-	.then(data => {
-		console.log(data); // JSON data parsed by `data.json()` call
-	});
-	
-	return true;
-}
-
 async function createClient() {
 	// Creates a new client and connects to the PostgreSQL database
 	const client = new Client({
@@ -503,10 +451,10 @@ function playPlayerMove(senderId, move) {
 	.then(position => {
 		if (position.move != null) {
 			console.log(position.board);
-			sendResponse(senderId, "Your move: " + move + "\n\nMove X\n" + position.board, 0);
+			chatInterface.sendResponse(senderId, "Your move: " + move + "\n\nMove X\n" + position.board, 0);
 			
 			if (position.gameOver) {
-				sendResponse(senderId, "Game over! " + position.status, 0);
+				chatInterface.sendResponse(senderId, "Game over! " + position.status, 0);
 			} else {
 				getEngineLevel(senderId)
 				.then(level => {
@@ -515,7 +463,7 @@ function playPlayerMove(senderId, move) {
 			}
 		} else {
 			console.log("Input move is invalid: " + move);
-			sendResponse(senderId, "Invalid move", 0);
+			chatInterface.sendResponse(senderId, "Invalid move", 0);
 		}
 	})
 	.catch(e => console.log(e));
@@ -563,12 +511,12 @@ async function postEngineMove(engineMove) {
 			let response = botLevel[level].emoji + "'s move: " + position.move.san;
 			response += "\n\n" + "Move X\n" + position.board;
 			
-			sendResponse(senderId, response, 1000)
+			chatInterface.sendResponse(senderId, response, 1000)
 			.then(r => {
 				if (position.gameOver) {
-					sendResponse(senderId, "Game over! " + position.status, 500);
+					chatInterface.sendResponse(senderId, "Game over! " + position.status, 500);
 				} else {
-					sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies)
+					chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies)
 				}
 			});
 		})
@@ -608,7 +556,7 @@ function chatController(message, senderId, payload = null) {
 							throw 'Unexpected object type in payload tree';
 						}
 					}
-					sendResponse(senderId, "Options:", 0, nextPayload);
+					chatInterface.sendResponse(senderId, "Options:", 0, nextPayload);
 					
 					break;
 				default:
@@ -632,7 +580,7 @@ function chatController(message, senderId, payload = null) {
 					
 					newGame(senderId, level)
 					.then(position => {
-						sendResponse(senderId, "New game:\n" + position.board, 0);
+						chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0);
 					})
 					.catch(e => console.log(e));
 					break;
@@ -644,7 +592,7 @@ function chatController(message, senderId, payload = null) {
 		// DEBUG ONLY
 		loadGame(senderId, message.slice(11))
 		.then(position => {
-			sendResponse(senderId, "Loaded custom position:\n" + position.board, 0);
+			chatInterface.sendResponse(senderId, "Loaded custom position:\n" + position.board, 0);
 		})
 		.catch(e => console.log(e));
 	} else {
@@ -654,19 +602,19 @@ function chatController(message, senderId, payload = null) {
 				Object.entries(botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
 				});
-				sendResponse(senderId, "Starting a new game...", 0)
-				.then(r => sendResponse(senderId, "Choose your opponent:", 1000, quickReply));
+				chatInterface.sendResponse(senderId, "Starting a new game...", 0)
+				.then(r => chatInterface.sendResponse(senderId, "Choose your opponent:", 1000, quickReply));
 				break;
 			case 'white':
 				getBoard(senderId, true)
 				.then(board => {
-					sendResponse(senderId, "White POV\n" + board, 0);
+					chatInterface.sendResponse(senderId, "White POV\n" + board, 0);
 				});
 				break;
 			case 'black':
 				getBoard(senderId, false)
 				.then(board => {
-					sendResponse(senderId, "Black POV\n" + board, 0);
+					chatInterface.sendResponse(senderId, "Black POV\n" + board, 0);
 				});
 				break;
 			default:
