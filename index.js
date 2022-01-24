@@ -291,8 +291,8 @@ if (typeof INIT_ENGINE === "function") {
 	try {
 		Stockfish(mod).then(function (sf)
 		{
-			bot = new Bot(sf, chatInterface);
-			bot.startEngine(engineOkCallback, makeMove); // Register app listen
+			bot = new Bot(sf, chatInterface, engineOkCallback, makeMove);
+			bot.startEngine(); // Register app listen
 		});
 	} catch (e) {
 		console.error(e);

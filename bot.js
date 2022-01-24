@@ -1,7 +1,9 @@
 class Bot {
-	constructor(engine, chatInterface) {
+	constructor(engine, chatInterface, engineOkCallback, makeMoveCallback) {
 		this.engine = engine;
 		this.chatInterface = chatInterface;
+		this.engineOkCallback = engineOkCallback;
+		this.makeMoveCallback = makeMoveCallback;
 		
 		this.isEngineRunning = false;
 		this.engineProcessingSenderId;
@@ -39,7 +41,7 @@ class Bot {
 		return true;
 	}
 	
-	async postEngineMove(engineMove, makeMoveCallback) {
+	async postEngineMove(engineMove) {
 		if (!this.isEngineRunning) {
 			return false
 		}
@@ -50,7 +52,7 @@ class Bot {
 		this.engineProcessingSenderId = null;
 		this.engineCurrentLevel = null;
 		
-		makeMoveCallback(senderId, engineMove, true)
+		this.makeMoveCallback(senderId, engineMove, true)
 		.then(position => {
 			if (position.move == null) {
 				throw 'Unexpected error with engineMove ' + engineMove;
@@ -74,20 +76,21 @@ class Bot {
 		return true;
 	}
 	
-	startEngine(engineOkCallback, makeMoveCallback) {
-		this.engine.addMessageListener(function onLog(line)
-		{
-			console.log("Line: " + line)
-			if (line.indexOf("uciok") > -1) {
-				// Sets server port and logs message on success
-				engineOkCallback();
-			} else if (line.indexOf("bestmove") > -1) {
-				let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
-				if (match) {
-					this.postEngineMove({from: match[1], to: match[2], promotion: match[3]}, makeMoveCallback);
-				}
+	onLog(line) {
+		console.log("Line: " + line)
+		if (line.indexOf("uciok") > -1) {
+			// Sets server port and logs message on success
+			this.engineOkCallback();
+		} else if (line.indexOf("bestmove") > -1) {
+			let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
+			if (match) {
+				this.postEngineMove({from: match[1], to: match[2], promotion: match[3]});
 			}
-		});
+		}
+	}
+	
+	startEngine() {
+		this.engine.addMessageListener(onLog);
 
 		this.engine.postMessage("uci");
 		this.engine.postMessage("setoption name Ponder value false");
