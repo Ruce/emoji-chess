@@ -4,7 +4,7 @@
 const
 	express = require('express'),
 	fetch = require('node-fetch'),
-	ChatInterface = require('chatInterface.js'),
+	ChatInterface = require('./chatInterface.js'),
 	bodyParser = require('body-parser'),
 	app = express().use(bodyParser.json()); // creates express http server
 
