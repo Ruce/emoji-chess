@@ -201,15 +201,15 @@ function chatController(message, senderId, payload = null) {
 			}
 		} else {
 			switch(payload) {
-				case botLevel[0].payload:
-				case botLevel[1].payload:
-				case botLevel[2].payload:
-				case botLevel[3].payload:
-				case botLevel[4].payload:
-				case botLevel[5].payload:
+				case Bot.botLevel[0].payload:
+				case Bot.botLevel[1].payload:
+				case Bot.botLevel[2].payload:
+				case Bot.botLevel[3].payload:
+				case Bot.botLevel[4].payload:
+				case Bot.botLevel[5].payload:
 					let level;
-					for (let i = 0; i < botLevel.length; i++) {
-						if (payload == botLevel[i].payload) {
+					for (let i = 0; i < Bot.botLevel.length; i++) {
+						if (payload == Bot.botLevel[i].payload) {
 							level = i;
 							break;
 						}
@@ -236,7 +236,7 @@ function chatController(message, senderId, payload = null) {
 		switch(message.toLowerCase()) {
 			case 'new game':
 				let quickReply = [];
-				Object.entries(botLevel).forEach(([key, val]) => {
+				Object.entries(Bot.botLevel).forEach(([key, val]) => {
 					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
 				});
 				chatInterface.sendResponse(senderId, "Starting a new game...", 0)
