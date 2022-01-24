@@ -6,58 +6,15 @@ const
 	fetch = require('node-fetch'),
 	ChatInterface = require('./chatInterface.js'),
 	EmojiChess = require('./emojiChess.js'),
+	Bot = require('./bot.js'),
 	bodyParser = require('body-parser'),
 	app = express().use(bodyParser.json()); // creates express http server
 
 const { Client } = require('pg');
 const { URLSearchParams } = require('url');
 const { Chess } = require('chess.js');
-
-var Stockfish;
-var engine;
-var INIT_ENGINE = require("stockfish");
-
 const chatInterface = new ChatInterface('https://graph.facebook.com/v12.0/me/messages?', process.env.PAGE_ACCESS_TOKEN);
-
-const symbols = {
-	pieces: {
-		w: {
-			p: "🐣",
-			n: "🦄",
-			b: "🏃",
-			r: "🏰",
-			q: "👸",
-			k: "🤴"
-		},
-		b: {
-			p: "♟",
-			n: "🐴",
-			b: "🐘",
-			r: "🗿",
-			q: "👩‍✈️",
-			k: "🤵"
-		}
-	},
-	board: {
-		rank: ["8️⃣", "7️⃣", "6️⃣", "5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"],
-		file: ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭"],
-		lightTile: "◽",
-		darkTile: "◾",
-		activeLightTile: "🔲",
-		activeDarkTile: "🔳",
-		origin: "🏁",
-		zeroWidth: "​"
-	}
-}
-
-const botLevel = [
-	{ emoji: '👶', payload: 'level_0', depth: 1, skill: 0},
-	{ emoji: '👧', payload: 'level_1', depth: 2, skill: 1},
-	{ emoji: '🤓', payload: 'level_2', depth: 5, skill: 5},
-	{ emoji: '👨‍🦳', payload: 'level_3', depth: 8, skill: 10},
-	{ emoji: '🧙‍♂️', payload: 'level_4', depth: 12, skill: 15},
-	{ emoji: '👽', payload: 'level_5', depth: 18, skill: 20}
-]
+var bot;
 
 const statusCheck = "Check";
 const statusCheckmate = "Checkmate";
@@ -65,7 +22,6 @@ const statusDraw = "Draw";
 const statusStalemate = "Stalemate";
 const statusRepetition = "Threefold Repetition";
 const statusMaterial = "Insufficient Material";
-
 
 async function createClient() {
 	// Creates a new client and connects to the PostgreSQL database
@@ -198,7 +154,7 @@ function playPlayerMove(senderId, move) {
 			} else {
 				getEngineLevel(senderId)
 				.then(level => {
-					startEngineMove(position.fen, senderId, level);
+					bot.startEngineMove(position.fen, senderId, level);
 				});
 			}
 		} else {
@@ -207,65 +163,6 @@ function playPlayerMove(senderId, move) {
 		}
 	})
 	.catch(e => console.log(e));
-}
-
-var isEngineRunning = false;
-var engineProcessingSenderId;
-var engineCurrentLevel;
-
-function startEngineMove(fen, senderId, level) {
-	if (!isEngineRunning) {
-		let depth = botLevel[level].depth;
-		let skillLevel = botLevel[level].skill;
-		console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
-		
-		engine.postMessage("ucinewgame");
-		engine.postMessage("position fen " + fen);
-		engine.postMessage("setoption name Skill Level value " + String(skillLevel));
-		engine.postMessage("go depth " + String(depth));
-		isEngineRunning = true;
-		engineProcessingSenderId = senderId;
-		engineCurrentLevel = level;
-		return true;
-	} else {
-		// Engine currently analysing previous command
-		return false;
-	}
-}
-
-async function postEngineMove(engineMove) {
-	if (isEngineRunning) {
-		isEngineRunning = false;
-		let senderId = engineProcessingSenderId;
-		let level = engineCurrentLevel;
-		engineProcessingSenderId = null;
-		engineCurrentLevel = null;
-		
-		makeMove(senderId, engineMove, true)
-		.then(position => {
-			if (position.move == null) {
-				throw 'Unexpected error with engineMove ' + engineMove;
-			}
-			
-			console.log(position.board);
-			let response = botLevel[level].emoji + "'s move: " + position.move.san;
-			response += "\n\n" + "Move X\n" + position.board;
-			
-			chatInterface.sendResponse(senderId, response, 1000)
-			.then(r => {
-				if (position.gameOver) {
-					chatInterface.sendResponse(senderId, "Game over! " + position.status, 500);
-				} else {
-					chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies)
-				}
-			});
-		})
-		.catch(e => console.log(e));
-		
-		return true;
-	} else {
-		return false;
-	}
 }
 
 function chatController(message, senderId, payload = null) {
@@ -363,10 +260,17 @@ function chatController(message, senderId, payload = null) {
 	}
 }
 
+function engineOkCallback() {
+	app.listen(process.env.PORT || 80, () => console.log('webhook is listening on port ' + String(process.env.PORT)));
+}
+
 // ----------
 // START
 // Initialise chess engine, register app listen, and create endpoints
 // ----------
+
+var Stockfish;
+var INIT_ENGINE = require("stockfish");
 
 var wasmPath = require.resolve("stockfish/src/stockfish.wasm");
 var mod = {
@@ -387,38 +291,12 @@ if (typeof INIT_ENGINE === "function") {
 	try {
 		Stockfish(mod).then(function (sf)
 		{
-			engine = sf;
-			startEngine();
+			bot = new Bot(sf, chatInterface);
+			bot.startEngine(engineOkCallback, makeMove); // Register app listen
 		});
 	} catch (e) {
 		console.error(e);
 	}
-}
-
-function startEngine() {
-	function send(str) {
-		console.log("Sending: " + str)
-		engine.postMessage(str);
-	}
-
-	engine.addMessageListener(function onLog(line)
-    {
-        console.log("Line: " + line)
-		
-		if (line.indexOf("uciok") > -1) {
-			// Sets server port and logs message on success
-			app.listen(process.env.PORT || 80, () => console.log('webhook is listening on port ' + String(process.env.PORT)));
-		} else if (line.indexOf("bestmove") > -1) {
-			let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
-			if (match) {
-				postEngineMove({from: match[1], to: match[2], promotion: match[3]});
-			}
-		}
-	});
-
-	send("uci");
-	send("setoption name Ponder value false");
-	send("setoption name MultiPV value 3");
 }
 
 // Creates the endpoint for our webhook 
