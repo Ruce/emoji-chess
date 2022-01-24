@@ -17,26 +17,6 @@ class Bot {
 		{ emoji: '👽', payload: 'level_5', depth: 18, skill: 20}
 	]
 	
-	startEngine(engineOkCallback, makeMoveCallback) {
-		this.engine.addMessageListener(function onLog(line)
-		{
-			console.log("Line: " + line)
-			if (line.indexOf("uciok") > -1) {
-				// Sets server port and logs message on success
-				engineOkCallback();
-			} else if (line.indexOf("bestmove") > -1) {
-				let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
-				if (match) {
-					this.postEngineMove({from: match[1], to: match[2], promotion: match[3]}, makeMoveCallback);
-				}
-			}
-		});
-
-		this.engine.postMessage("uci");
-		this.engine.postMessage("setoption name Ponder value false");
-		this.engine.postMessage("setoption name MultiPV value 3");
-	}
-	
 	startEngineMove(fen, senderId, level) {
 		if (this.isEngineRunning) {
 			// Engine currently analysing previous command
@@ -92,6 +72,26 @@ class Bot {
 		.catch(e => console.log(e));
 		
 		return true;
+	}
+	
+	startEngine(engineOkCallback, makeMoveCallback) {
+		this.engine.addMessageListener(function onLog(line)
+		{
+			console.log("Line: " + line)
+			if (line.indexOf("uciok") > -1) {
+				// Sets server port and logs message on success
+				engineOkCallback();
+			} else if (line.indexOf("bestmove") > -1) {
+				let match = line.match(/^bestmove ([a-h][1-8])([a-h][1-8])([qrbn])?/);
+				if (match) {
+					this.postEngineMove({from: match[1], to: match[2], promotion: match[3]}, makeMoveCallback);
+				}
+			}
+		});
+
+		this.engine.postMessage("uci");
+		this.engine.postMessage("setoption name Ponder value false");
+		this.engine.postMessage("setoption name MultiPV value 3");
 	}
 }
 
