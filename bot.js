@@ -90,7 +90,7 @@ class Bot {
 	}
 	
 	startEngine() {
-		this.engine.addMessageListener(onLog);
+		this.engine.addMessageListener(this.onLog);
 
 		this.engine.postMessage("uci");
 		this.engine.postMessage("setoption name Ponder value false");
