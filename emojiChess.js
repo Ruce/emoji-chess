@@ -1,5 +1,37 @@
 class EmojiChess {
+	static symbols = {
+		pieces: {
+			w: {
+				p: "🐣",
+				n: "🦄",
+				b: "🏃",
+				r: "🏰",
+				q: "👸",
+				k: "🤴"
+			},
+			b: {
+				p: "♟",
+				n: "🐴",
+				b: "🐘",
+				r: "🗿",
+				q: "👩‍✈️",
+				k: "🤵"
+			}
+		},
+		board: {
+			rank: ["8️⃣", "7️⃣", "6️⃣", "5️⃣", "4️⃣", "3️⃣", "2️⃣", "1️⃣"],
+			file: ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭"],
+			lightTile: "◽",
+			darkTile: "◾",
+			activeLightTile: "🔲",
+			activeDarkTile: "🔳",
+			origin: "🏁",
+			zeroWidth: "​"
+		}
+	}
+	
 	static outputBoard(board, from, isWhitePov = true) {
+		const symbols = EmojiChess.symbols;
 		let rows = [];
 		
 		// Iterate through tiles on the board (2D array)
@@ -65,7 +97,7 @@ class EmojiChess {
 		if (piece == 'p' || move.charAt(0) == 'O') {
 			return move;
 		} else {
-			return symbols.pieces[color][piece] + move.slice(1);
+			return EmojiChess.symbols.pieces[color][piece] + move.slice(1);
 		}
 	}
 
@@ -123,7 +155,7 @@ class EmojiChess {
 		
 		let color = moves[0].color;
 		let piece = moves[0].piece;
-		let pieceEmoji = symbols.pieces[color][piece];
+		let pieceEmoji = EmojiChess.symbols.pieces[color][piece];
 		
 		let payload = [];
 		if (moves.length <= 12) {
@@ -170,6 +202,8 @@ class EmojiChess {
 	}
 
 	static getAvailableMoves(moves) {
+		const symbols = EmojiChess.symbols;
+		
 		if (moves.length == 0) {
 			throw 'No available moves supplied';
 		}
