@@ -38,25 +38,25 @@ class Bot {
 	}
 	
 	startEngineMove(fen, senderId, level) {
-		if (!isEngineRunning) {
-			let depth = Bot.botLevel[level].depth;
-			let skillLevel = Bot.botLevel[level].skill;
-			console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
-			
-			this.engine.postMessage("ucinewgame");
-			this.engine.postMessage("position fen " + fen);
-			this.engine.postMessage("setoption name Skill Level value " + String(skillLevel));
-			this.engine.postMessage("go depth " + String(depth));
-			
-			this.isEngineRunning = true;
-			this.engineProcessingSenderId = senderId;
-			this.engineCurrentLevel = level;
-			
-			return true;
-		} else {
+		if (this.isEngineRunning) {
 			// Engine currently analysing previous command
 			return false;
 		}
+		
+		let depth = Bot.botLevel[level].depth;
+		let skillLevel = Bot.botLevel[level].skill;
+		console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
+		
+		this.engine.postMessage("ucinewgame");
+		this.engine.postMessage("position fen " + fen);
+		this.engine.postMessage("setoption name Skill Level value " + String(skillLevel));
+		this.engine.postMessage("go depth " + String(depth));
+		
+		this.isEngineRunning = true;
+		this.engineProcessingSenderId = senderId;
+		this.engineCurrentLevel = level;
+		
+		return true;
 	}
 	
 	async postEngineMove(engineMove, makeMoveCallback) {
