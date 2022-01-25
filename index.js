@@ -207,6 +207,8 @@ function chatController(message, senderId, payload = null) {
 				case Bot.botLevel[3].payload:
 				case Bot.botLevel[4].payload:
 				case Bot.botLevel[5].payload:
+				case Bot.botLevel[6].payload:
+				case Bot.botLevel[7].payload:
 					let level;
 					for (let i = 0; i < Bot.botLevel.length; i++) {
 						if (payload == Bot.botLevel[i].payload) {
