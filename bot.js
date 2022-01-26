@@ -13,30 +13,45 @@ class Bot {
 	}
 	
 	static botLevel = [
-		{ emoji: '👶', payload: 'level_0', depth: 1, skill: 0, suboptimal: 0.4, tunnelVision: 0.5},
-		{ emoji: '👧', payload: 'level_1', depth: 1, skill: 0, suboptimal: 0.3, tunnelVision: 0.3},
-		{ emoji: '🤓', payload: 'level_2', depth: 2, skill: 2, suboptimal: 0.2, tunnelVision: 0.1},
-		{ emoji: '🕵️', payload: 'level_3', depth: 3, skill: 5, suboptimal: 0.1, tunnelVision: 0},
-		{ emoji: '👴', payload: 'level_4', depth: 5, skill: 7, suboptimal: 0, tunnelVision: 0},
-		{ emoji: '🧙‍♂️', payload: 'level_5', depth: 8, skill: 12, suboptimal: 0, tunnelVision: 0},
-		{ emoji: '🐐', payload: 'level_6', depth: 13, skill: 19, suboptimal: 0, tunnelVision: 0},
-		{ emoji: '👽', payload: 'level_7', depth: 18, skill: 20, suboptimal: 0, tunnelVision: 0}
+		{ emoji: '👶', payload: 'level_0', depth: 1, skill: 0, subOptimal: 0.35, tunnelVision: 0.5},
+		{ emoji: '👧', payload: 'level_1', depth: 1, skill: 0, subOptimal: 0.25, tunnelVision: 0.3},
+		{ emoji: '🤓', payload: 'level_2', depth: 2, skill: 2, subOptimal: 0.15, tunnelVision: 0.1},
+		{ emoji: '🕵️', payload: 'level_3', depth: 3, skill: 5, subOptimal: 0.05, tunnelVision: 0},
+		{ emoji: '👴', payload: 'level_4', depth: 5, skill: 7, subOptimal: 0, tunnelVision: 0},
+		{ emoji: '🧙‍♂️', payload: 'level_5', depth: 8, skill: 12, subOptimal: 0, tunnelVision: 0},
+		{ emoji: '🐐', payload: 'level_6', depth: 13, skill: 19, subOptimal: 0, tunnelVision: 0},
+		{ emoji: '👽', payload: 'level_7', depth: 18, skill: 20, subOptimal: 0, tunnelVision: 0}
 	]
 	
 	static pieceValues = { p: 1, b: 3, n: 3, r: 5, q: 9, k: 99 }
+	
+	// https://stackoverflow.com/a/12646864
+	static shuffleArray(arr) {
+		for (let i = arr.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[arr[i], arr[j]] = [arr[j], arr[i]];
+		}
+	}
 
 	static availableCaptures(moves) {
-		let captures = [];
+		function sortByNetValue(a, b) {
+			return b[1] - a[1];
+		}
+		
+		let capturesWithValues = [];
 		for (const move of moves) {
 			if (move.flags.indexOf("c") > -1 || move.flags.indexOf("e") > -1) {
 				// `netValue`: value of the captured piece minus value of the piece used to capture
 				// High netValue generally suggests a preferable move (e.g. capturing a queen with a pawn)
 				// compared to a move with low netValue (e.g. capturing a pawn with a queen)
 				let netValue = Bot.pieceValues[move.captured] - Bot.pieceValues[move.piece]
-				console.log(move.san + ": " + String(netValue));
-				captures.push(move);
+				capturesWithValues.push([move, netValue]);
 			}
 		}
+		Bot.shuffleArray(capturesWithValues);
+		capturesWithValues.sort(sortByNetValue);
+		let captures = capturesWithValues.map(c => c[0]);
+		
 		return captures;
 	}
 
@@ -47,16 +62,18 @@ class Bot {
 				checks.push(move);
 			}
 		}
+		Bot.shuffleArray(checks);
 		return checks;
 	}
 
 	static availablePromotions(moves) {
 		let promotions = [];
 		for (const move of moves) {
-			if (move.flags.indexOf("p") > -1) {
+			if (move.flags.indexOf("p") > -1 && move.promotion === 'q') {
 				promotions.push(move);
 			}
 		}
+		Bot.shuffleArray(promotions);
 		return promotions;
 	}
 
@@ -81,25 +98,35 @@ class Bot {
 	}
 	
 	static subOptimalMove(fen, tunnelVisionChance) {
-		// Simulates naive play where checks, captures, or promotions are made even if suboptimal.
-		// In addition, probability of `tunnelVisionChance` that the bot plays a check/capture/promotion
-		// even if the moved piece could be hanging.
+		// Simulates naive play where checks, captures, or promotions are made even if suboptimal
+		// In addition, probability of `tunnelVisionChance` that the bot plays a random check/capture/promotion
 		const game = new Chess(fen);
 		const moves = game.moves({ verbose: true });
 		const tunnelVision = (Math.random() < tunnelVisionChance);
 		
-		let promotions = Bot.availablePromotions(moves);
-		let captures = Bot.availableCaptures(moves);
-		let checks = Bot.availableChecks(moves);
-		if (promotions.length > 0) {
-			
-		} else if (captures.length > 0) {		
-			for (const c of captures) {
-				console.log(c.san + " is hanging: " + Bot.isHangingMove(fen, c));
-			}
-		} else if (checks.length > 0) {
-			
+		const promotions = Bot.availablePromotions(moves);
+		const captures = Bot.availableCaptures(moves);
+		const checks = Bot.availableChecks(moves);
+		const possibleMoves = promotions.concat(captures, checks);
+		if (possibleMoves.length == 0) {
+			return null;
+		}
+		
+		let possibleMovesSan = possibleMoves.map(m => m.san);
+		console.log("Playing suboptimal move (tunnel vision " + tunnelVision + ") choosing from: " + possibleMovesSan);
+		
+		if (tunnelVision) {
+			let i = Math.floor(Math.random() * possibleMoves.length);
+			let chosenMove = possibleMoves[i];
+			return {from: chosenMove.from, to: chosenMove.to, promotion: chosenMove.promotion};
 		} else {
+			// `possibleMoves` is sorted with promotions as priority, then captures, then checks
+			// `captures` are sorted by highest "net value", i.e. lowest value piece capturing highest value piece
+			for (const m of possibleMoves) {
+				if (!isHangingMove(fen, m)) {
+					return {from: m.from, to: m.to, promotion: m.promotion};
+				}
+			}
 			return null;
 		}
 	}
@@ -112,16 +139,27 @@ class Bot {
 		
 		let depth = Bot.botLevel[level].depth;
 		let skillLevel = Bot.botLevel[level].skill;
-		console.log(`Evaluating position [${fen}] at depth ${depth} and Skill Level ${skillLevel}`);
-		
-		this.engine.postMessage("ucinewgame");
-		this.engine.postMessage("position fen " + fen);
-		this.engine.postMessage("setoption name Skill Level value " + String(skillLevel));
-		this.engine.postMessage("go depth " + String(depth));
+		let subOptimal = Bot.botLevel[level].subOptimal;
+		console.log(`Evaluating position [${fen}] with bot level [${level}]`);
 		
 		this.isEngineRunning = true;
 		this.engineProcessingSenderId = senderId;
 		this.engineCurrentLevel = level;
+		
+		let naiveMove = null;
+		if (Math.random() < subOptimal) {
+			let tunnelVisionChance = Bot.botLevel[level].tunnelVision;
+			naiveMove = subOptimalMove(fen, tunnelVisionChance);
+		}
+		
+		if (naiveMove == null) {
+			this.engine.postMessage("ucinewgame");
+			this.engine.postMessage("position fen " + fen);
+			this.engine.postMessage("setoption name Skill Level value " + String(skillLevel));
+			this.engine.postMessage("go depth " + String(depth));
+		} else {
+			postEngineMove(naiveMove);
+		}
 		
 		return true;
 	}

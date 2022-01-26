@@ -3,17 +3,23 @@ const { Chess } = require('chess.js')
 const pieceValues = { p: 1, b: 3, n: 3, r: 5, q: 9, k: 99 }
 
 function availableCaptures(moves) {
-	let captures = [];
+	function sortByNetValue(a, b) {
+		return b[1] - a[1];
+	}
+	
+	let capturesWithValues = [];
 	for (const move of moves) {
 		if (move.flags.indexOf("c") > -1 || move.flags.indexOf("e") > -1) {
 			// `netValue`: value of the captured piece minus value of the piece used to capture
 			// High netValue generally suggests a preferable move (e.g. capturing a queen with a pawn)
 			// compared to a move with low netValue (e.g. capturing a pawn with a queen)
 			let netValue = pieceValues[move.captured] - pieceValues[move.piece]
-			console.log(move.san + ": " + String(netValue));
-			captures.push(move);
+			capturesWithValues.push([move, netValue]);
 		}
 	}
+	capturesWithValues.sort(sortByNetValue);
+	let captures = capturesWithValues.map(c => c[0]);
+	
 	return captures;
 }
 
@@ -32,7 +38,7 @@ function availableChecks(moves) {
 function availablePromotions(moves) {
 	let promotions = [];
 	for (const move of moves) {
-		if (move.flags.indexOf("p") > -1) {
+		if (move.flags.indexOf("p") > -1 && move.promotion === 'q') {
 			console.log(move.san);
 			promotions.push(move);
 		}
@@ -60,7 +66,7 @@ function isHangingMove(prevFen, move) {
 	return isHanging;
 }
 
-let fen = "r1bqk2r/ppp2ppp/2nbp3/3p2N1/3P2n1/3BP1B1/PPP2PPP/RN1QK2R w KQkq - 0 1";
+let fen = "6rk/P5pp/8/8/8/2p5/1QRP4/3N3K w - - 0 1";
 const chess = new Chess(fen);
 let moves = chess.moves({verbose: true});
 
@@ -71,4 +77,4 @@ for (const c of captures) {
 
 
 //availableChecks(moves);
-//availablePromotions(moves);
+console.log(availablePromotions(moves));
