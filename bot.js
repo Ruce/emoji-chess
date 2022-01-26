@@ -123,7 +123,7 @@ class Bot {
 			// `possibleMoves` is sorted with promotions as priority, then captures, then checks
 			// `captures` are sorted by highest "net value", i.e. lowest value piece capturing highest value piece
 			for (const m of possibleMoves) {
-				if (!isHangingMove(fen, m)) {
+				if (!Bot.isHangingMove(fen, m)) {
 					return {from: m.from, to: m.to, promotion: m.promotion};
 				}
 			}
@@ -149,7 +149,7 @@ class Bot {
 		let naiveMove = null;
 		if (Math.random() < subOptimal) {
 			let tunnelVisionChance = Bot.botLevel[level].tunnelVision;
-			naiveMove = subOptimalMove(fen, tunnelVisionChance);
+			naiveMove = Bot.subOptimalMove(fen, tunnelVisionChance);
 		}
 		
 		if (naiveMove == null) {
@@ -158,7 +158,7 @@ class Bot {
 			this.engine.postMessage("setoption name Skill Level value " + String(skillLevel));
 			this.engine.postMessage("go depth " + String(depth));
 		} else {
-			postEngineMove(naiveMove);
+			this.postEngineMove(naiveMove);
 		}
 		
 		return true;
