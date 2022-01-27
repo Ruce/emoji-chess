@@ -41,7 +41,7 @@ async function newGame(senderId, level) {
 	
 	// TO DO: Check for existence of game for senderId
 	const chess = new Chess();
-	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }))
+	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	
 	const update = 'UPDATE games SET fen = $1, level = $2 WHERE sender_id = $3 RETURNING *;'
 	const updateRes = await client.query(update, [chess.fen(), level, senderId]);
@@ -59,7 +59,7 @@ async function loadGame(senderId, fen) {
 	const client = await createClient();
 	
 	const chess = new Chess(fen);
-	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }))
+	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
 	const updateRes = await client.query(update, [chess.fen(), senderId]);
@@ -67,6 +67,18 @@ async function loadGame(senderId, fen) {
 	
 	await client.end();
 	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null), availableMoves: availableMoves};
+}
+
+async function loadAvailableMoves(senderId) {
+	const client = await createClient();
+	
+	let fen;
+	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
+	const selectRes = await client.query(select, [senderId]);
+	fen = selectRes.rows[0].fen;
+	
+	const chess = new Chess(fen);
+	return EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 }
 
 async function makeMove(senderId, move, replyAvailableMoves = true) {
@@ -196,6 +208,7 @@ function chatController(message, senderId, payload = null) {
 							throw 'Unexpected object type in payload tree';
 						}
 					}
+					nextPayload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: payload });
 					chatInterface.sendResponse(senderId, "Options:", 0, nextPayload);
 					
 					break;
@@ -224,10 +237,16 @@ function chatController(message, senderId, payload = null) {
 					.then(position => {
 						chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0)
 						.then(r => {
-							chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies)
+							chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies);
 						});
 					})
 					.catch(e => console.log(e));
+					break;
+				case EmojiChess.getAvailableMovesPayload:
+					loadAvailableMoves(senderId)
+					.then(availableMoves => {
+						chatInterface.sendResponse(senderId, "Options:", 0, availableMoves.replies);
+					});
 					break;
 				default:
 					console.error("ERROR - Unknown payload: " + payload);

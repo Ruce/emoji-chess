@@ -27,8 +27,13 @@ class EmojiChess {
 			activeDarkTile: "🔳",
 			origin: "🏁",
 			zeroWidth: "​"
+		},
+		menu: {
+			back: "🔙"
 		}
 	}
+	
+	static getAvailableMovesPayload = "get_available_moves";
 	
 	static outputBoard(board, from, isWhitePov = true) {
 		const symbols = EmojiChess.symbols;
@@ -291,6 +296,8 @@ class EmojiChess {
 			let payloadK = "Tree|" + JSON.stringify(EmojiChess.encodeMoves(kingMoves));
 			quickReplies.push({content_type: "text", title: titleK, payload: payloadK});
 		}
+		
+		quickReplies.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: getAvailableMovesPayload });
 		
 		return { message: 'Your turn! Pick a piece:', replies: quickReplies };
 	}
