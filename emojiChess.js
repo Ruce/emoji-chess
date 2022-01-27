@@ -297,7 +297,7 @@ class EmojiChess {
 			quickReplies.push({content_type: "text", title: titleK, payload: payloadK});
 		}
 		
-		quickReplies.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: getAvailableMovesPayload });
+		quickReplies.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: EmojiChess.getAvailableMovesPayload });
 		
 		return { message: 'Your turn! Pick a piece:', replies: quickReplies };
 	}
