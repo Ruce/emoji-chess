@@ -41,12 +41,14 @@ async function newGame(senderId, level) {
 	
 	// TO DO: Check for existence of game for senderId
 	const chess = new Chess();
+	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }))
+	
 	const update = 'UPDATE games SET fen = $1, level = $2 WHERE sender_id = $3 RETURNING *;'
 	const updateRes = await client.query(update, [chess.fen(), level, senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
-	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null)};
+	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null), availableMoves: availableMoves};
 }
 
 async function loadGame(senderId, fen) {
@@ -57,12 +59,14 @@ async function loadGame(senderId, fen) {
 	const client = await createClient();
 	
 	const chess = new Chess(fen);
+	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }))
+	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
 	const updateRes = await client.query(update, [chess.fen(), senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
-	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null)};
+	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null), availableMoves: availableMoves};
 }
 
 async function makeMove(senderId, move, replyAvailableMoves = true) {
@@ -105,7 +109,6 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 		}
 		
 		if (replyAvailableMoves) {
-			console.log(chess.moves());
 			availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 		}
 	}
@@ -219,7 +222,10 @@ function chatController(message, senderId, payload = null) {
 					
 					newGame(senderId, level)
 					.then(position => {
-						chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0);
+						chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0)
+						.then(r => {
+							chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies)
+						});
 					})
 					.catch(e => console.log(e));
 					break;
@@ -231,7 +237,10 @@ function chatController(message, senderId, payload = null) {
 		// DEBUG ONLY
 		loadGame(senderId, message.slice(11))
 		.then(position => {
-			chatInterface.sendResponse(senderId, "Loaded custom position:\n" + position.board, 0);
+			chatInterface.sendResponse(senderId, "Loaded custom position:\n" + position.board, 0)
+			.then(r => {
+				chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies)
+			});
 		})
 		.catch(e => console.log(e));
 	} else {
