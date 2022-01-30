@@ -189,7 +189,7 @@ function chatController(message, senderId, payload = null) {
 					playPlayerMove(senderId, encoded[1]);
 					break;
 				case 'Tree':
-					let nextPayload = decodeTree(encoded);
+					let nextPayload = EmojiChess.decodeTree(encoded);
 					chatInterface.sendResponse(senderId, "Options:", 0, nextPayload);
 					break;
 				default:
