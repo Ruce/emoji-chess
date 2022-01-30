@@ -189,28 +189,8 @@ function chatController(message, senderId, payload = null) {
 					playPlayerMove(senderId, encoded[1]);
 					break;
 				case 'Tree':
-					let tree = JSON.parse(encoded[1]);
-					let nextPayload = [];
-					for (const node of tree) {
-						if (node.constructor.name === 'Object') {
-							// Option with another nested layer of quick replies
-							let optionName;
-							let nextTree;
-							for (const option in node) {
-								optionName = option;
-								nextTree = JSON.stringify(node[option]);
-							}
-							nextPayload.push({ content_type: "text", title: optionName, payload: "Tree|" + nextTree });
-						} else if (node.constructor.name === 'String') {
-							// Option is a move
-							nextPayload.push({ content_type: "text", title: node, payload: "Move|" + node });
-						} else {
-							throw 'Unexpected object type in payload tree';
-						}
-					}
-					nextPayload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: payload });
+					let nextPayload = decodeTree(encoded);
 					chatInterface.sendResponse(senderId, "Options:", 0, nextPayload);
-					
 					break;
 				default:
 					console.error("ERROR - Unknown payload: " + payload);
