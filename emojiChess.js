@@ -215,7 +215,7 @@ class EmojiChess {
 		let tree = JSON.parse(encoded[1]);
 		// `position` is the "coordinates" of our current position in the tree
 		// e.g. 2,3 indicates we are at element tree[2][3]	
-		let position = encoded[2].split(',');
+		let position = encoded[2].split(',').map(x => parseInt(x));
 		
 		let nextPayload = [];
 		let currTree = tree;
@@ -230,7 +230,8 @@ class EmojiChess {
 				// Option with another nested layer of quick replies
 				let optionName = Object.keys(node)[0];
 				let nextTree = node[optionName];
-				let nodePosition = [...position].push(i);
+				let nodePosition = [...position];
+				nodePosition.push(i);
 				nextPayload.push({ content_type: "text", title: optionName, payload: "Tree|" + nextTree + "|" + nodePosition.join(',') });
 			} else if (node.constructor.name === 'String') {
 				// Option is a move
@@ -242,7 +243,9 @@ class EmojiChess {
 		
 		let backPayload;
 		if (position.length > 1) {
-			backPayload = "Tree|" + encoded[1] + "|" + [...position].pop.join(',');
+			let prevPosition = [...position];
+			prevPosition.pop();
+			backPayload = "Tree|" + encoded[1] + "|" + prevPosition.join(',');
 		} else {
 			backPayload = EmojiChess.getAvailableMovesPayload;
 		}
