@@ -229,10 +229,9 @@ class EmojiChess {
 			if (node.constructor.name === 'Object') {
 				// Option with another nested layer of quick replies
 				let optionName = Object.keys(node)[0];
-				let nextTree = node[optionName];
 				let nodePosition = [...position];
 				nodePosition.push(i);
-				nextPayload.push({ content_type: "text", title: optionName, payload: "Tree|" + nextTree + "|" + nodePosition.join(',') });
+				nextPayload.push({ content_type: "text", title: optionName, payload: "Tree|" + encoded[1] + "|" + nodePosition.join(',') });
 			} else if (node.constructor.name === 'String') {
 				// Option is a move
 				nextPayload.push({ content_type: "text", title: node, payload: "Move|" + node });
