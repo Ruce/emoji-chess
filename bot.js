@@ -21,9 +21,9 @@ class Bot {
 		{ emoji: '🧙‍♂️', payload: 'level_5', depth: 8, skill: 12, subOptimal: 0, tunnelVision: 0},
 		{ emoji: '🐐', payload: 'level_6', depth: 13, skill: 19, subOptimal: 0, tunnelVision: 0},
 		{ emoji: '👽', payload: 'level_7', depth: 18, skill: 20, subOptimal: 0, tunnelVision: 0}
-	]
+	];
 	
-	static pieceValues = { p: 1, b: 3, n: 3, r: 5, q: 9, k: 99 }
+	static pieceValues = { p: 1, b: 3, n: 3, r: 5, q: 9, k: 99 };
 	
 	// https://stackoverflow.com/a/12646864
 	static shuffleArray(arr) {

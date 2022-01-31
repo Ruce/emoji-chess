@@ -267,6 +267,7 @@ class EmojiChess {
 			for (const move of moves) {
 				quickReplies.push({ content_type: "text", title: EmojiChess.formatMove(move.san, move.piece, move.color), payload: "Move|" + move.san });
 			}
+			quickReplies.push({ content_type: "text", title: "⚙️ Menu", payload: "Menu" });
 			return { message: 'Your turn! Pick a move:', replies: quickReplies };
 		}
 		
@@ -346,6 +347,7 @@ class EmojiChess {
 			quickReplies.push({content_type: "text", title: titleK, payload: payloadK});
 		}
 		
+		quickReplies.push({ content_type: "text", title: "⚙️ Menu", payload: "Menu" });
 		return { message: 'Your turn! Pick a piece:', replies: quickReplies };
 	}
 }

@@ -7,6 +7,7 @@ const
 	ChatInterface = require('./chatInterface.js'),
 	EmojiChess = require('./emojiChess.js'),
 	Bot = require('./bot.js'),
+	Menu = require('./menu.js'),
 	bodyParser = require('body-parser'),
 	app = express().use(bodyParser.json()); // creates express http server
 
@@ -227,6 +228,9 @@ function chatController(message, senderId, payload = null) {
 					.then(availableMoves => {
 						chatInterface.sendResponse(senderId, "Options:", 0, availableMoves.replies);
 					});
+					break;
+				case 'Menu':
+					chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuPayload());
 					break;
 				default:
 					console.error("ERROR - Unknown payload: " + payload);
