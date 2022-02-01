@@ -13,14 +13,14 @@ class Bot {
 	}
 	
 	static botLevel = [
-		{ emoji: '👶', payload: 'level_0', depth: 1, skill: 0, subOptimal: 0.35, tunnelVision: 0.5},
-		{ emoji: '👧', payload: 'level_1', depth: 1, skill: 0, subOptimal: 0.25, tunnelVision: 0.3},
-		{ emoji: '🤓', payload: 'level_2', depth: 2, skill: 2, subOptimal: 0.15, tunnelVision: 0.1},
-		{ emoji: '🕵️', payload: 'level_3', depth: 3, skill: 5, subOptimal: 0.05, tunnelVision: 0},
-		{ emoji: '👴', payload: 'level_4', depth: 5, skill: 7, subOptimal: 0, tunnelVision: 0},
-		{ emoji: '🧙‍♂️', payload: 'level_5', depth: 8, skill: 12, subOptimal: 0, tunnelVision: 0},
-		{ emoji: '🐐', payload: 'level_6', depth: 13, skill: 19, subOptimal: 0, tunnelVision: 0},
-		{ emoji: '👽', payload: 'level_7', depth: 18, skill: 20, subOptimal: 0, tunnelVision: 0}
+		{ emoji: '👶', payload: 'Level|0', depth: 1, skill: 0, subOptimal: 0.35, tunnelVision: 0.5},
+		{ emoji: '👧', payload: 'Level|1', depth: 1, skill: 0, subOptimal: 0.25, tunnelVision: 0.3},
+		{ emoji: '🤓', payload: 'Level|2', depth: 2, skill: 2, subOptimal: 0.15, tunnelVision: 0.1},
+		{ emoji: '🕵️', payload: 'Level|3', depth: 3, skill: 5, subOptimal: 0.05, tunnelVision: 0},
+		{ emoji: '👴', payload: 'Level|4', depth: 5, skill: 7, subOptimal: 0, tunnelVision: 0},
+		{ emoji: '🧙‍♂️', payload: 'Level|5', depth: 8, skill: 12, subOptimal: 0, tunnelVision: 0},
+		{ emoji: '🐐', payload: 'Level|6', depth: 13, skill: 19, subOptimal: 0, tunnelVision: 0},
+		{ emoji: '👽', payload: 'Level|7', depth: 18, skill: 20, subOptimal: 0, tunnelVision: 0}
 	];
 	
 	static pieceValues = { p: 1, b: 3, n: 3, r: 5, q: 9, k: 99 };

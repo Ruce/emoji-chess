@@ -37,6 +37,10 @@ async function createClient() {
 }
 
 async function newGame(senderId, level) {
+	// `level`: integer corresponding to the index of Bot.botLevel
+	const viewPerspective = 'w';
+	const isBotsTurn = false;
+	
 	// Connect to the PostgreSQL database
 	const client = await createClient();
 	
@@ -44,8 +48,8 @@ async function newGame(senderId, level) {
 	const chess = new Chess();
 	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	
-	const update = 'UPDATE games SET fen = $1, level = $2 WHERE sender_id = $3 RETURNING *;'
-	const updateRes = await client.query(update, [chess.fen(), level, senderId]);
+	const update = 'UPDATE games SET fen = $1, level = $2, view_perspective = $3, is_bots_turn = $4, WHERE sender_id = $5 RETURNING *;'
+	const updateRes = await client.query(update, [chess.fen(), level, viewPerspective, isBotsTurn, senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
@@ -55,8 +59,6 @@ async function newGame(senderId, level) {
 async function loadGame(senderId, fen) {
 	// WARNING: DEBUG ONLY
 	// Prone to SQL injection
-	
-	// Connect to the PostgreSQL database
 	const client = await createClient();
 	
 	const chess = new Chess(fen);
@@ -64,19 +66,33 @@ async function loadGame(senderId, fen) {
 	
 	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
 	const updateRes = await client.query(update, [chess.fen(), senderId]);
-	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
+	console.log('Loaded custom game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
 	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null), availableMoves: availableMoves};
 }
 
+async function updateViewPerspective(senderId, color) {
+	// `color`: 'w' or 'b' for the view perspective of the board
+	if (color !== 'w' && color !== 'b') {
+		throw "ArgumentError: Unknown color '" + color + "' at updateViewPerspective";
+	}
+	
+	const client = await createClient();
+	
+	const update = 'UPDATE games SET view_perspective = $1 WHERE sender_id = $2 RETURNING *;'
+	const updateRes = await client.query(update, [color, senderId]);
+	
+	await client.end();
+	return true;
+}
+
 async function loadAvailableMoves(senderId) {
 	const client = await createClient();
 	
-	let fen;
 	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
 	const selectRes = await client.query(select, [senderId]);
-	fen = selectRes.rows[0].fen;
+	const fen = selectRes.rows[0].fen;
 	
 	const chess = new Chess(fen);
 	return EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
@@ -85,10 +101,10 @@ async function loadAvailableMoves(senderId) {
 async function makeMove(senderId, move, replyAvailableMoves = true) {
 	const client = await createClient();
 	
-	let fen;
-	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
+	const select = 'SELECT fen, view_perspective FROM games WHERE sender_id = $1;'
 	const selectRes = await client.query(select, [senderId]);
-	fen = selectRes.rows[0].fen;
+	const fen = selectRes.rows[0].fen;
+	const isWhitePov = (selectRes.rows[0].view_perspective === 'w');
 	console.log('Old fen: ' + fen);
 	
 	const chess = new Chess(fen);
@@ -131,7 +147,7 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 	console.log('New fen: ' + updateRes.rows[0].fen);
 	
 	await client.end();
-	return {move: moveResult, fen: newFen, board: EmojiChess.outputBoard(chess.board(), moveResult.from), gameOver: gameOver, status: status, availableMoves: availableMoves};
+	return {move: moveResult, fen: newFen, board: EmojiChess.outputBoard(chess.board(), moveResult.from, isWhitePov), gameOver: gameOver, status: status, availableMoves: availableMoves};
 }
 
 async function getBoard(senderId, isWhitePov = true) {
@@ -183,58 +199,45 @@ function playPlayerMove(senderId, move) {
 
 function chatController(message, senderId, payload = null) {
 	if (payload != null) {
-		if (payload.split('|').length > 1) {
-			let encoded = payload.split('|');
-			switch(encoded[0]) {
-				case 'Move':
-					playPlayerMove(senderId, encoded[1]);
-					break;
-				case 'Tree':
-					let nextPayload = EmojiChess.decodeTree(encoded);
-					chatInterface.sendResponse(senderId, "Options:", 0, nextPayload);
-					break;
-				default:
-					console.error("ERROR - Unknown payload: " + payload);
-			}
-		} else {
-			switch(payload) {
-				case Bot.botLevel[0].payload:
-				case Bot.botLevel[1].payload:
-				case Bot.botLevel[2].payload:
-				case Bot.botLevel[3].payload:
-				case Bot.botLevel[4].payload:
-				case Bot.botLevel[5].payload:
-				case Bot.botLevel[6].payload:
-				case Bot.botLevel[7].payload:
-					let level;
-					for (let i = 0; i < Bot.botLevel.length; i++) {
-						if (payload == Bot.botLevel[i].payload) {
-							level = i;
-							break;
-						}
-					}
-					
-					newGame(senderId, level)
-					.then(position => {
-						chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0)
-						.then(r => {
-							chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies);
-						});
-					})
-					.catch(e => console.log(e));
-					break;
-				case EmojiChess.getAvailableMovesPayload:
-					loadAvailableMoves(senderId)
-					.then(availableMoves => {
-						chatInterface.sendResponse(senderId, "Options:", 0, availableMoves.replies);
-					});
-					break;
-				case 'Menu':
-					chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuPayload());
-					break;
-				default:
-					console.error("ERROR - Unknown payload: " + payload);
-			}
+		const splitPayload = payload.split('|');
+		switch(splitPayload[0]) {
+			case 'Level':
+				const level = splitPayload[1];
+				newGame(senderId, level);
+				
+				const colorPayload = [{ content_type: "text", title: "White", payload: "Color|w" },
+					{ content_type: "text", title: "Black", payload: "Color|b" }];
+				chatInterface.sendResponse(senderId, "Pick a color:", 0, colorPayload);
+				break;
+			case 'Color':
+				const color = splitPayload[1];
+				const isWhitePov = (color === 'w');
+				
+				updateViewPerspective(senderId, color)
+				.then(r => { getBoard(senderId, isWhitePov); })
+				.then(position => { chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0); })
+				.then(r => { loadAvailableMoves(senderId); })
+				.then(availableMoves => { chatInterface.sendResponse(senderId, availableMoves.message, 1500, availableMoves.replies); })
+				.catch(e => console.log(e));
+				break;
+			case 'Move':
+				playPlayerMove(senderId, splitPayload[1]);
+				break;
+			case 'Tree':
+				let nextPayload = EmojiChess.decodeTree(splitPayload);
+				chatInterface.sendResponse(senderId, "Options:", 0, nextPayload);
+				break;
+			case EmojiChess.getAvailableMovesPayload:
+				loadAvailableMoves(senderId)
+				.then(availableMoves => {
+					chatInterface.sendResponse(senderId, "Options:", 0, availableMoves.replies);
+				});
+				break;
+			case 'Menu':
+				chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuPayload());
+				break;
+			default:
+				console.error("ERROR - Unknown payload: " + payload);
 		}
 	} else if (message.slice(0, 11) == 'debug load ') {
 		// DEBUG ONLY
