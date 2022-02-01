@@ -215,9 +215,9 @@ function chatController(message, senderId, payload = null) {
 				const isWhitePov = (color === 'w');
 				
 				updateViewPerspective(senderId, color)
-				.then(r => { getBoard(senderId, isWhitePov); })
-				.then(board => { chatInterface.sendResponse(senderId, "New game:\n" + board, 0); })
-				.then(r => { loadAvailableMoves(senderId); })
+				.then(r => { return getBoard(senderId, isWhitePov); })
+				.then(board => { return chatInterface.sendResponse(senderId, "New game:\n" + board, 0); })
+				.then(r => { return loadAvailableMoves(senderId); })
 				.then(availableMoves => { chatInterface.sendResponse(senderId, availableMoves.message, 1500, availableMoves.replies); })
 				.catch(e => console.log(e));
 				break;
