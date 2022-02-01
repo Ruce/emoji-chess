@@ -48,7 +48,7 @@ async function newGame(senderId, level) {
 	const chess = new Chess();
 	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	
-	const update = 'UPDATE games SET fen = $1, level = $2, view_perspective = $3, is_bots_turn = $4, WHERE sender_id = $5 RETURNING *;'
+	const update = 'UPDATE games SET fen = $1, level = $2, view_perspective = $3, is_bots_turn = $4 WHERE sender_id = $5 RETURNING *;'
 	const updateRes = await client.query(update, [chess.fen(), level, viewPerspective, isBotsTurn, senderId]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
