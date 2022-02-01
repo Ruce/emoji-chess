@@ -205,8 +205,9 @@ function chatController(message, senderId, payload = null) {
 				const level = splitPayload[1];
 				newGame(senderId, level);
 				
-				const colorPayload = [{ content_type: "text", title: "White", payload: "Color|w" },
-					{ content_type: "text", title: "Black", payload: "Color|b" }];
+				const colorPayload = [{ content_type: "text", title: EmojiChess.symbols.pieces.w.k + " White", payload: "Color|w" },
+					{ content_type: "text", title: "☯️ Random", payload: "Color|r" },
+					{ content_type: "text", title: EmojiChess.symbols.pieces.b.k + " Black", payload: "Color|b" }];
 				chatInterface.sendResponse(senderId, "Pick a color:", 0, colorPayload);
 				break;
 			case 'Color':
@@ -215,7 +216,7 @@ function chatController(message, senderId, payload = null) {
 				
 				updateViewPerspective(senderId, color)
 				.then(r => { getBoard(senderId, isWhitePov); })
-				.then(position => { chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0); })
+				.then(board => { chatInterface.sendResponse(senderId, "New game:\n" + board, 0); })
 				.then(r => { loadAvailableMoves(senderId); })
 				.then(availableMoves => { chatInterface.sendResponse(senderId, availableMoves.message, 1500, availableMoves.replies); })
 				.catch(e => console.log(e));
