@@ -71,7 +71,7 @@ async function newGame(senderId, level) {
 	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, created_on FROM games WHERE sender_id = $1 RETURNING sender_id;'
 	const transferRes = await client.query(transfer, [senderId]);
 	console.log('Transfer result:\n' + printObject(transferRes));
-	if (transferRes.rows.length > 0) {
+	if (transferRes.rowCount > 0) {
 		const deleteQuery = 'DELETE FROM games WHERE sender_id = $1;'
 		const deleteRes = await client.query(deleteQuery, [senderId]);
 	}
