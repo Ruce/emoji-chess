@@ -44,12 +44,20 @@ async function newGame(senderId, level) {
 	// Connect to the PostgreSQL database
 	const client = await createClient();
 	
-	// TO DO: Check for existence of game for senderId
 	const chess = new Chess();
 	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	
-	const update = 'UPDATE games SET fen = $1, level = $2, view_perspective = $3, is_bots_turn = $4 WHERE sender_id = $5 RETURNING *;'
-	const updateRes = await client.query(update, [chess.fen(), level, viewPerspective, isBotsTurn, senderId]);
+	// Transfer previous game into the games_archive table
+	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, created_on FROM games WHERE sender_id = $1 RETURNING sender_id;'
+	const transferRes = await client.query(transfer, [senderId]);
+	console.log('Transfer result:\n' + transferRes);
+	if (transferRes.rows.length > 0) {
+		const deleteQuery = 'DELETE FROM games WHERE sender_id = $1;'
+		const deleteRes = await client.query(deleteQuery, [senderId]);
+	}
+	
+	const update = 'INSERT INTO games (sender_id, fen, level, view_perspective, is_bots_turn) VALUES ($1, $2, $3, $4, $5) RETURNING *;'
+	const updateRes = await client.query(update, [senderId, chess.fen(), level, viewPerspective, isBotsTurn]);
 	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
@@ -212,7 +220,10 @@ function chatController(message, senderId, payload = null) {
 				break;
 			case 'Color':
 				const color = splitPayload[1];
-				const isWhitePov = (color === 'w');
+				let isWhitePov = (color === 'w');
+				if (color === 'r') {
+					isWhitePov = (Math.random() < 0.5);
+				}
 				
 				updateViewPerspective(senderId, color)
 				.then(r => { return getBoard(senderId, isWhitePov); })
