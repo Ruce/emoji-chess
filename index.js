@@ -37,6 +37,18 @@ async function createClient() {
 }
 
 async function newGame(senderId, level) {
+	function printObject(obj) {
+		for (const o in obj) {
+			if (obj[o].constructor.name === 'Object') {
+				console.log('Property [' + o + '] has object:');
+				printObject(obj[o])
+			}
+			else {
+				console.log('Property [' + o + '] has value [' + obj[o] + ']');
+			}
+		}
+	}
+	
 	// `level`: integer corresponding to the index of Bot.botLevel
 	const viewPerspective = 'w';
 	const isBotsTurn = false;
@@ -50,7 +62,7 @@ async function newGame(senderId, level) {
 	// Transfer previous game into the games_archive table
 	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, created_on FROM games WHERE sender_id = $1 RETURNING sender_id;'
 	const transferRes = await client.query(transfer, [senderId]);
-	console.log('Transfer result:\n' + transferRes);
+	console.log('Transfer result:\n' + printObject(transferRes));
 	if (transferRes.rows.length > 0) {
 		const deleteQuery = 'DELETE FROM games WHERE sender_id = $1;'
 		const deleteRes = await client.query(deleteQuery, [senderId]);
