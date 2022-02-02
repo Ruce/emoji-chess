@@ -38,8 +38,16 @@ async function createClient() {
 
 async function newGame(senderId, level) {
 	function printObject(obj) {
+		let props = [];
 		for (const o in obj) {
-			if (obj[o].constructor.name === 'Object') {
+			props.push(o);
+		}
+		console.log('All properties: ' + props.join(', '));
+		
+		for (const o in obj) {
+			if (obj[o] == null) {
+				console.log('Property [' + o + '] has value [null]');
+			} else if (obj[o].constructor.name === 'Object') {
 				console.log('Property [' + o + '] has object:');
 				printObject(obj[o])
 			}
