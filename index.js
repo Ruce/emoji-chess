@@ -93,7 +93,7 @@ async function flipViewPerspective(senderId) {
 	const client = await createClient();
 	
 	const select = 'SELECT fen, is_white_pov FROM games WHERE sender_id = $1;'
-	const selectRes = await client.query(query, [senderId]);
+	const selectRes = await client.query(select, [senderId]);
 	const fen = selectRes.rows[0].fen;
 	const isWhitePov = selectRes.rows[0].is_white_pov;
 	const newIsWhitePov = !isWhitePov;
