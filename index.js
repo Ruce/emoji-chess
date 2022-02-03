@@ -89,14 +89,23 @@ async function loadGame(senderId, fen) {
 	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null), availableMoves: availableMoves};
 }
 
-async function updateViewPerspective(senderId, isWhitePov) {
+async function flipViewPerspective(senderId) {
 	const client = await createClient();
 	
+	const select = 'SELECT fen, is_white_pov FROM games WHERE sender_id = $1;'
+	const selectRes = await client.query(query, [senderId]);
+	const fen = selectRes.rows[0].fen;
+	const isWhitePov = selectRes.rows[0].is_white_pov;
+	const newIsWhitePov = !isWhitePov;
+	
 	const update = 'UPDATE games SET is_white_pov = $1 WHERE sender_id = $2 RETURNING *;'
-	const updateRes = await client.query(update, [isWhitePov, senderId]);
+	const updateRes = await client.query(update, [newIsWhitePov, senderId]);
+	
+	const chess = new Chess(fen);
+	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	
 	await client.end();
-	return true;
+	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null, newIsWhitePov), availableMoves: availableMoves};
 }
 
 async function loadAvailableMoves(senderId) {
@@ -214,11 +223,21 @@ function processMenuOptions(senderId, optionPayload) {
 		case EmojiChess.plMenuRoot:
 			chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuRootPayload());
 			break;
+		case Menu.plFlipBoard:
+			flipViewPerspective(senderId).
+			then(position => {
+				chatInterface.sendResponse(senderId, "Move X\n" + position.board, 0);
+				return position;
+			})
+			.then(position => {
+				chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies);
+			});
+			break;
 		case Menu.plHelpMenu:
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
 			break;
 		default:
-			console.log("Unknown payload [" + optionPayload + "]");
+			console.log("ERROR - Unknown payload at processMenuOptions: " + optionPayload);
 	}
 	
 	const plNewGame = 'new_game';
@@ -318,6 +337,9 @@ function chatController(message, senderId, payload = null) {
 				.then(board => {
 					chatInterface.sendResponse(senderId, "Black POV\n" + board, 0);
 				});
+				break;
+			case 'menu':
+				processMenuOptions(senderId, EmojiChess.plMenuRoot);
 				break;
 			default:
 				playPlayerMove(senderId, message);

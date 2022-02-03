@@ -38,7 +38,7 @@ class Menu {
 		for (const option in Menu.helpMenu) {
 			payload.push({ content_type: "text", title: option, payload: "Menu|" + Menu.helpMenu[option] });
 		}
-		payload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: EmojiChess.plMenuRoot });
+		payload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + EmojiChess.plMenuRoot });
 		return payload;
 	}
 }
