@@ -209,6 +209,28 @@ function playPlayerMove(senderId, move) {
 	.catch(e => console.log(e));
 }
 
+function processMenuOptions(senderId, optionPayload) {
+	switch(optionPayload) {
+		case EmojiChess.plMenuRoot:
+			chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuRootPayload());
+			break;
+		case Menu.plHelpMenu:
+			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
+			break;
+		default:
+			console.log("Unknown payload [" + optionPayload + "]");
+	}
+	
+	const plNewGame = 'new_game';
+	const plFlipBoard = 'flip_board';
+	const plDownloadGame = 'download_game';
+	const plHelpMenu = 'help_menu';
+	const plPlayingMove = 'playing_move';
+	const plOtherCommands = 'other_commands';
+	const plChessRules = 'chess_rules';
+	const plAbout = 'about';
+}
+
 function chatController(message, senderId, payload = null) {
 	if (payload != null) {
 		const splitPayload = payload.split('|');
@@ -253,14 +275,14 @@ function chatController(message, senderId, payload = null) {
 				let nextPayload = EmojiChess.decodeTree(splitPayload);
 				chatInterface.sendResponse(senderId, "Options:", 0, nextPayload);
 				break;
-			case EmojiChess.getAvailableMovesPayload:
+			case EmojiChess.plGetAvailableMoves:
 				loadAvailableMoves(senderId)
 				.then(availableMoves => {
 					chatInterface.sendResponse(senderId, "Options:", 0, availableMoves.replies);
 				});
 				break;
 			case 'Menu':
-				chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuPayload());
+				processMenuOptions(senderId, splitPayload[1]);
 				break;
 			default:
 				console.error("ERROR - Unknown payload: " + payload);

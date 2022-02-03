@@ -1,15 +1,44 @@
 const EmojiChess = require('./emojiChess.js');
 
 class Menu {
-	static menuRoot = { '🆕 New Game': 'new_game', '🔄 Flip Board': 'flip_board', '💾 Download Game': 'download_game', '❓ Help': 'help_menu' };
-	static menuHelp = { '🎮 Playing a Move': 'playing_move', '💬 Other Commands': 'other_commands', '👩‍🏫 Chess Rules': 'chess_rules', 'ℹ️ About EmojiChess': 'about' };
+	// Payloads for various menu button options
+	static plNewGame = 'new_game';
+	static plFlipBoard = 'flip_board';
+	static plDownloadGame = 'download_game';
+	static plHelpMenu = 'help_menu';
+	static plPlayingMove = 'playing_move';
+	static plOtherCommands = 'other_commands';
+	static plChessRules = 'chess_rules';
+	static plAbout = 'about';
 	
-	static getMenuPayload() {
+	static menuRoot = {
+		[EmojiChess.symbols.menu.newGame + ' New Game']: Menu.plNewGame,
+		[EmojiChess.symbols.menu.flipBoard + ' Flip Board']: Menu.plFlipBoard,
+		[EmojiChess.symbols.menu.downloadGame + ' Download Game']: Menu.plDownloadGame,
+		[EmojiChess.symbols.menu.helpMenu + ' Help']: Menu.plHelpMenu
+	};
+	static helpMenu = {
+		[EmojiChess.symbols.menu.playingMove + ' Playing a Move']: Menu.plPlayingMove,
+		[EmojiChess.symbols.menu.otherCommands + ' Other Commands']: Menu.plOtherCommands,
+		[EmojiChess.symbols.menu.chessRules + ' Chess Rules']: Menu.plChessRules,
+		[EmojiChess.symbols.menu.about + ' About EmojiChess']: Menu.plAbout
+	};
+	
+	static getMenuRootPayload() {
 		let payload = [];
 		for (const option in Menu.menuRoot) {
-			payload.push({ content_type: "text", title: option, payload: Menu.menuRoot[option] });
+			payload.push({ content_type: "text", title: option, payload: "Menu|" + Menu.menuRoot[option] });
 		}
-		payload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: EmojiChess.getAvailableMovesPayload });
+		payload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: EmojiChess.plGetAvailableMoves });
+		return payload;
+	}
+	
+	static getHelpMenuPayload() {
+		let payload = [];
+		for (const option in Menu.helpMenu) {
+			payload.push({ content_type: "text", title: option, payload: "Menu|" + Menu.helpMenu[option] });
+		}
+		payload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: EmojiChess.plMenuRoot });
 		return payload;
 	}
 }

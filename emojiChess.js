@@ -29,11 +29,20 @@ class EmojiChess {
 			zeroWidth: "​"
 		},
 		menu: {
-			back: "🔙"
+			back: "🔙",
+			newGame: "🆕",
+			flipBoard: "🔄",
+			downloadGame: "💾",
+			helpMenu: "❓",
+			playingMove: "🎮",
+			otherCommands: "💬",
+			chessRules: "👩‍🏫",
+			about: "ℹ️"
 		}
 	}
 	
-	static getAvailableMovesPayload = "get_available_moves";
+	static plGetAvailableMoves = "get_available_moves";
+	static plMenuRoot = 'root';
 	
 	static outputBoard(board, from, isWhitePov = true) {
 		const symbols = EmojiChess.symbols;
@@ -246,7 +255,7 @@ class EmojiChess {
 			prevPosition.pop();
 			backPayload = "Tree|" + encoded[1] + "|" + prevPosition.join(',');
 		} else {
-			backPayload = EmojiChess.getAvailableMovesPayload;
+			backPayload = EmojiChess.plGetAvailableMoves;
 		}
 		nextPayload.push({ content_type: "text", title: EmojiChess.symbols.menu.back, payload: backPayload });
 		
@@ -267,7 +276,7 @@ class EmojiChess {
 			for (const move of moves) {
 				quickReplies.push({ content_type: "text", title: EmojiChess.formatMove(move.san, move.piece, move.color), payload: "Move|" + move.san });
 			}
-			quickReplies.push({ content_type: "text", title: "⚙️ Menu", payload: "Menu" });
+			quickReplies.push({ content_type: "text", title: "⚙️ Menu", payload: "Menu|" + EmojiChess.plMenuRoot });
 			return { message: 'Your turn! Pick a move:', replies: quickReplies };
 		}
 		
@@ -307,47 +316,47 @@ class EmojiChess {
 		// A tree has nested arrays, with each array containing the options for quick replies
 		if (pawnMoves.length > 0) {
 			let titleP = isWhitesTurn ? symbols.pieces.w.p : symbols.pieces.b.p;
-			titleP += " (Pawn)";
+			titleP += " Pawn";
 			let payloadP = "Tree|" + JSON.stringify(EmojiChess.encodeTree(pawnMoves, titleP)) + "|0";
 			quickReplies.push({content_type: "text", title: titleP, payload: payloadP});
 		}
 		
 		if (knightMoves.length > 0) {
 			let titleN = isWhitesTurn ? symbols.pieces.w.n : symbols.pieces.b.n;
-			titleN += " (Knight)";
+			titleN += " Knight";
 			let payloadN = "Tree|" + JSON.stringify(EmojiChess.encodeTree(knightMoves, titleN)) + "|0";
 			quickReplies.push({content_type: "text", title: titleN, payload: payloadN});
 		}
 		
 		if (bishopMoves.length > 0) {
 			let titleB = isWhitesTurn ? symbols.pieces.w.b : symbols.pieces.b.b;
-			titleB += " (Bishop)";
+			titleB += " Bishop";
 			let payloadB = "Tree|" + JSON.stringify(EmojiChess.encodeTree(bishopMoves, titleB)) + "|0";
 			quickReplies.push({content_type: "text", title: titleB, payload: payloadB});
 		}
 		
 		if (rookMoves.length > 0) {
 			let titleR = isWhitesTurn ? symbols.pieces.w.r : symbols.pieces.b.r;
-			titleR += " (Rook)";
+			titleR += " Rook";
 			let payloadR = "Tree|" + JSON.stringify(EmojiChess.encodeTree(rookMoves, titleR)) + "|0";
 			quickReplies.push({content_type: "text", title: titleR, payload: payloadR});
 		}
 		
 		if (queenMoves.length > 0) {
 			let titleQ = isWhitesTurn ? symbols.pieces.w.q : symbols.pieces.b.q;
-			titleQ += " (Queen)";
+			titleQ += " Queen";
 			let payloadQ = "Tree|" + JSON.stringify(EmojiChess.encodeTree(queenMoves, titleQ)) + "|0";
 			quickReplies.push({content_type: "text", title: titleQ, payload: payloadQ});
 		}
 		
 		if (kingMoves.length > 0) {
 			let titleK = isWhitesTurn ? symbols.pieces.w.k : symbols.pieces.b.k;
-			titleK += " (King)";
+			titleK += " King";
 			let payloadK = "Tree|" + JSON.stringify(EmojiChess.encodeTree(kingMoves, titleK)) + "|0";
 			quickReplies.push({content_type: "text", title: titleK, payload: payloadK});
 		}
 		
-		quickReplies.push({ content_type: "text", title: "⚙️ Menu", payload: "Menu" });
+		quickReplies.push({ content_type: "text", title: "⚙️ Menu", payload: "Menu|" + EmojiChess.plMenuRoot });
 		return { message: 'Your turn! Pick a piece:', replies: quickReplies };
 	}
 }
