@@ -232,10 +232,17 @@ function chatController(message, senderId, payload = null) {
 				startGame(senderId, isWhitePov)
 				.then(position => {
 					chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0);
-					return position.availableMoves;
+					return position;
 				})
-				.then(availableMoves => {
-					chatInterface.sendResponse(senderId, availableMoves.message, 1500, availableMoves.replies);
+				.then(position => {
+					if (isWhitePov) {
+						chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies);
+					} else {
+						getEngineLevel(senderId)
+						.then(engineLevel => {
+							bot.startEngineMove(position.fen, senderId, engineLevel);
+						});
+					}
 				})
 				.catch(e => console.log(e));
 				break;
