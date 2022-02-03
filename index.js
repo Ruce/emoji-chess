@@ -37,51 +37,40 @@ async function createClient() {
 }
 
 async function newGame(senderId, level) {
-	function printObject(obj) {
-		let props = [];
-		for (const o in obj) {
-			props.push(o);
-		}
-		console.log('All properties: ' + props.join(', '));
-		
-		for (const o in obj) {
-			if (obj[o] == null) {
-				console.log('Property [' + o + '] has value [null]');
-			} else if (obj[o].constructor.name === 'Object') {
-				console.log('Property [' + o + '] has object:');
-				printObject(obj[o])
-			}
-			else {
-				console.log('Property [' + o + '] has value [' + obj[o] + ']');
-			}
-		}
-	}
-	
 	// `level`: integer corresponding to the index of Bot.botLevel
-	const viewPerspective = 'w';
-	const isBotsTurn = false;
+	// Transfer previous game (if any) into the `games_archive` table,
+	// delete old records from the `games` table,
+	// and insert a new "blank" record with just the bot level
 	
-	// Connect to the PostgreSQL database
 	const client = await createClient();
 	
-	const chess = new Chess();
-	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
-	
-	// Transfer previous game into the games_archive table
-	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, created_on FROM games WHERE sender_id = $1 RETURNING sender_id;'
+	// Archive previous game that are not "blank" entries
+	// A record may be "blank" if it was created but the game was never started
+	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, created_on FROM games WHERE sender_id = $1 AND fen IS NOT NULL;'
 	const transferRes = await client.query(transfer, [senderId]);
-	console.log('Transfer result:\n' + printObject(transferRes));
-	if (transferRes.rowCount > 0) {
-		const deleteQuery = 'DELETE FROM games WHERE sender_id = $1;'
-		const deleteRes = await client.query(deleteQuery, [senderId]);
-	}
 	
-	const update = 'INSERT INTO games (sender_id, fen, level, view_perspective, is_bots_turn) VALUES ($1, $2, $3, $4, $5) RETURNING *;'
-	const updateRes = await client.query(update, [senderId, chess.fen(), level, viewPerspective, isBotsTurn]);
-	console.log('Started new game for user ' + updateRes.rows[0].sender_id);
+	// Delete old game(s) from the `game` table including any "blank" entries
+	const deleteQuery = 'DELETE FROM games WHERE sender_id = $1;'
+	const deleteRes = await client.query(deleteQuery, [senderId]);
+	
+	const update = 'INSERT INTO games (sender_id, level) VALUES ($1, $2) RETURNING *;'
+	const updateRes = await client.query(update, [senderId, level]);
+	console.log('Created new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
-	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null), availableMoves: availableMoves};
+	return true;
+}
+
+async function startGame(senderId, isWhitePov) {
+	const client = await createClient();
+	const chess = new Chess();
+	const isBotsTurn = !isWhitePov;
+	
+	const update = 'UPDATE games SET fen = $1, is_white_pov = $2, is_bots_turn = $3 WHERE sender_id = $4';
+	const updateRes = await client.query(update, [chess.fen(), isWhitePov, isBotsTurn, senderId]);
+	
+	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
+	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null, isWhitePov), availableMoves: availableMoves};
 }
 
 async function loadGame(senderId, fen) {
@@ -100,16 +89,11 @@ async function loadGame(senderId, fen) {
 	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null), availableMoves: availableMoves};
 }
 
-async function updateViewPerspective(senderId, color) {
-	// `color`: 'w' or 'b' for the view perspective of the board
-	if (color !== 'w' && color !== 'b') {
-		throw "ArgumentError: Unknown color '" + color + "' at updateViewPerspective";
-	}
-	
+async function updateViewPerspective(senderId, isWhitePov) {
 	const client = await createClient();
 	
-	const update = 'UPDATE games SET view_perspective = $1 WHERE sender_id = $2 RETURNING *;'
-	const updateRes = await client.query(update, [color, senderId]);
+	const update = 'UPDATE games SET is_white_pov = $1 WHERE sender_id = $2 RETURNING *;'
+	const updateRes = await client.query(update, [isWhitePov, senderId]);
 	
 	await client.end();
 	return true;
@@ -129,10 +113,10 @@ async function loadAvailableMoves(senderId) {
 async function makeMove(senderId, move, replyAvailableMoves = true) {
 	const client = await createClient();
 	
-	const select = 'SELECT fen, view_perspective FROM games WHERE sender_id = $1;'
+	const select = 'SELECT fen, is_white_pov FROM games WHERE sender_id = $1;'
 	const selectRes = await client.query(select, [senderId]);
 	const fen = selectRes.rows[0].fen;
-	const isWhitePov = (selectRes.rows[0].view_perspective === 'w');
+	const isWhitePov = selectRes.rows[0].is_white_pov;
 	console.log('Old fen: ' + fen);
 	
 	const chess = new Chess(fen);
@@ -245,11 +229,14 @@ function chatController(message, senderId, payload = null) {
 					isWhitePov = (Math.random() < 0.5);
 				}
 				
-				updateViewPerspective(senderId, color)
-				.then(r => { return getBoard(senderId, isWhitePov); })
-				.then(board => { return chatInterface.sendResponse(senderId, "New game:\n" + board, 0); })
-				.then(r => { return loadAvailableMoves(senderId); })
-				.then(availableMoves => { chatInterface.sendResponse(senderId, availableMoves.message, 1500, availableMoves.replies); })
+				startGame(senderId, isWhitePov)
+				.then(position => {
+					chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0);
+					return position.availableMoves;
+				})
+				.then(availableMoves => {
+					chatInterface.sendResponse(senderId, availableMoves.message, 1500, availableMoves.replies);
+				})
 				.catch(e => console.log(e));
 				break;
 			case 'Move':
