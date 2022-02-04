@@ -17,6 +17,11 @@ const { Chess } = require('chess.js');
 const chatInterface = new ChatInterface('https://graph.facebook.com/v12.0/me/messages?', process.env.PAGE_ACCESS_TOKEN);
 var bot;
 
+const statusNotStarted = "Not Started";
+const statusInProgress = "In Progress";
+const statusWhiteWon = "White Won";
+const statusBlackWon = "Black Won";
+const statusAbandoned = "Abandoned";
 const statusCheck = "Check";
 const statusCheckmate = "Checkmate";
 const statusDraw = "Draw";
@@ -46,15 +51,15 @@ async function newGame(senderId, level) {
 	
 	// Archive previous game that are not "blank" entries
 	// A record may be "blank" if it was created but the game was never started
-	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, created_on FROM games WHERE sender_id = $1 AND fen IS NOT NULL;'
+	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, status, is_player_white, created_on FROM games WHERE sender_id = $1 AND fen IS NOT NULL;'
 	const transferRes = await client.query(transfer, [senderId]);
 	
 	// Delete old game(s) from the `game` table including any "blank" entries
 	const deleteQuery = 'DELETE FROM games WHERE sender_id = $1;'
 	const deleteRes = await client.query(deleteQuery, [senderId]);
 	
-	const update = 'INSERT INTO games (sender_id, level) VALUES ($1, $2) RETURNING *;'
-	const updateRes = await client.query(update, [senderId, level]);
+	const update = 'INSERT INTO games (sender_id, level, status) VALUES ($1, $2, $3) RETURNING *;'
+	const updateRes = await client.query(update, [senderId, level, statusNotStarted]);
 	console.log('Created new game for user ' + updateRes.rows[0].sender_id);
 	
 	await client.end();
@@ -66,8 +71,8 @@ async function startGame(senderId, isWhitePov) {
 	const chess = new Chess();
 	const isBotsTurn = !isWhitePov;
 	
-	const update = 'UPDATE games SET fen = $1, is_white_pov = $2, is_bots_turn = $3 WHERE sender_id = $4';
-	const updateRes = await client.query(update, [chess.fen(), isWhitePov, isBotsTurn, senderId]);
+	const update = 'UPDATE games SET fen = $1, status = $2, is_player_white = $3, is_white_pov = $3, is_bots_turn = $4 WHERE sender_id = $5';
+	const updateRes = await client.query(update, [chess.fen(), statusInProgress, isWhitePov, isBotsTurn, senderId]);
 	
 	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null, isWhitePov), availableMoves: availableMoves};
@@ -143,16 +148,26 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 		// Game that is in_checkmate is also in_check, therefore call in_checkmate() first
 		if (chess.in_checkmate()) {
 			status = statusCheckmate;
+		} else if (chess.insufficient_material()) {
+			status = statusMaterial;
 		} else if (chess.in_draw()) {
+			// Draw due to 50-move rule (or insufficient material, but already caught above)
 			status = statusDraw;
 		} else if (chess.in_stalemate()) {
 			status = statusStalemate;
 		} else if (chess.in_threefold_repetition()) {
 			// TO DO: Cannot detect threefold repetition when calling FEN from scratch
 			status = statusRepetition;
-		} else if (chess.insufficient_material()) {
-			status = statusMaterial;
 		}
+		
+		// If checkmate, differentiate between white/black win when recording status to database
+		let gameStatus = status;
+		if (gameStatus === statusCheckmate) {
+			gameStatus = (moveResult.color === 'w') ? statusWhiteWon : statusBlackWon;
+		}
+		
+		let update = 'UPDATE games SET fen = $1, status = $2 WHERE sender_id = $3 RETURNING *;'
+		let updateRes = await client.query(update, [newFen, gameStatus, senderId]);
 	} else {
 		if (chess.in_check()) {
 			status = statusCheck;
@@ -161,11 +176,13 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 		if (replyAvailableMoves) {
 			availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 		}
+		
+		let update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
+		let updateRes = await client.query(update, [newFen, senderId]);
 	}
 	
-	const update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-	const updateRes = await client.query(update, [newFen, senderId]);
-	console.log('New fen: ' + updateRes.rows[0].fen);
+
+	console.log('New fen: ' + newFen);
 	
 	await client.end();
 	return {move: moveResult, fen: newFen, board: EmojiChess.outputBoard(chess.board(), moveResult.from, isWhitePov), gameOver: gameOver, status: status, availableMoves: availableMoves};
@@ -195,7 +212,49 @@ async function getEngineLevel(senderId) {
 	return level;
 }
 
-function playPlayerMove(senderId, move) {
+function processStartNewGame(senderId) {
+	let quickReply = [];
+	Object.entries(Bot.botLevel).forEach(([key, val]) => {
+		quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
+	});
+	chatInterface.sendResponse(senderId, "Starting a new game...", 0)
+	.then(r => chatInterface.sendResponse(senderId, "Choose your opponent:", 1000, quickReply));
+}
+
+function processLevelSelect(senderId, level) {
+	newGame(senderId, level);
+	
+	const colorPayload = [{ content_type: "text", title: EmojiChess.symbols.pieces.w.k + " White", payload: "Color|w" },
+		{ content_type: "text", title: EmojiChess.symbols.menu.randomColor + " Random", payload: "Color|r" },
+		{ content_type: "text", title: EmojiChess.symbols.pieces.b.k + " Black", payload: "Color|b" }];
+	chatInterface.sendResponse(senderId, "Pick a color:", 0, colorPayload);
+}
+
+function processColorSelect(senderId, color) {
+	let isWhitePov = (color === 'w');
+	if (color === 'r') {
+		isWhitePov = (Math.random() < 0.5);
+	}
+	
+	startGame(senderId, isWhitePov)
+	.then(position => {
+		chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0);
+		return position;
+	})
+	.then(position => {
+		if (isWhitePov) {
+			chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies);
+		} else {
+			getEngineLevel(senderId)
+			.then(engineLevel => {
+				bot.startEngineMove(position.fen, senderId, engineLevel);
+			});
+		}
+	})
+	.catch(e => console.log(e));
+}
+
+function processPlayerMove(senderId, move) {
 	makeMove(senderId, move, false)
 	.then(position => {
 		if (position.move != null) {
@@ -222,6 +281,9 @@ function processMenuOptions(senderId, optionPayload) {
 	switch(optionPayload) {
 		case EmojiChess.plMenuRoot:
 			chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuRootPayload());
+			break;
+		case Menu.plNewGame:
+			
 			break;
 		case Menu.plFlipBoard:
 			flipViewPerspective(senderId).
@@ -256,39 +318,14 @@ function chatController(message, senderId, payload = null) {
 		switch(splitPayload[0]) {
 			case 'Level':
 				const level = splitPayload[1];
-				newGame(senderId, level);
-				
-				const colorPayload = [{ content_type: "text", title: EmojiChess.symbols.pieces.w.k + " White", payload: "Color|w" },
-					{ content_type: "text", title: "☯️ Random", payload: "Color|r" },
-					{ content_type: "text", title: EmojiChess.symbols.pieces.b.k + " Black", payload: "Color|b" }];
-				chatInterface.sendResponse(senderId, "Pick a color:", 0, colorPayload);
+				processLevelSelect(senderId, level)
 				break;
 			case 'Color':
 				const color = splitPayload[1];
-				let isWhitePov = (color === 'w');
-				if (color === 'r') {
-					isWhitePov = (Math.random() < 0.5);
-				}
-				
-				startGame(senderId, isWhitePov)
-				.then(position => {
-					chatInterface.sendResponse(senderId, "New game:\n" + position.board, 0);
-					return position;
-				})
-				.then(position => {
-					if (isWhitePov) {
-						chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies);
-					} else {
-						getEngineLevel(senderId)
-						.then(engineLevel => {
-							bot.startEngineMove(position.fen, senderId, engineLevel);
-						});
-					}
-				})
-				.catch(e => console.log(e));
+				processColorSelect(senderId, color)
 				break;
 			case 'Move':
-				playPlayerMove(senderId, splitPayload[1]);
+				processPlayerMove(senderId, splitPayload[1]);
 				break;
 			case 'Tree':
 				let nextPayload = EmojiChess.decodeTree(splitPayload);
@@ -319,30 +356,21 @@ function chatController(message, senderId, payload = null) {
 	} else {
 		switch(message.toLowerCase()) {
 			case 'new game':
-				let quickReply = [];
-				Object.entries(Bot.botLevel).forEach(([key, val]) => {
-					quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
-				});
-				chatInterface.sendResponse(senderId, "Starting a new game...", 0)
-				.then(r => chatInterface.sendResponse(senderId, "Choose your opponent:", 1000, quickReply));
+				processStartNewGame(senderId)
 				break;
 			case 'white':
 				getBoard(senderId, true)
-				.then(board => {
-					chatInterface.sendResponse(senderId, "White POV\n" + board, 0);
-				});
+				.then(board => { chatInterface.sendResponse(senderId, "White POV\n" + board, 0); });
 				break;
 			case 'black':
 				getBoard(senderId, false)
-				.then(board => {
-					chatInterface.sendResponse(senderId, "Black POV\n" + board, 0);
-				});
+				.then(board => { chatInterface.sendResponse(senderId, "Black POV\n" + board, 0); });
 				break;
 			case 'menu':
 				processMenuOptions(senderId, EmojiChess.plMenuRoot);
 				break;
 			default:
-				playPlayerMove(senderId, message);
+				processPlayerMove(senderId, message);
 		}
 	}
 }

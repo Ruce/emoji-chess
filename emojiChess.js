@@ -37,7 +37,10 @@ class EmojiChess {
 			playingMove: "🎮",
 			otherCommands: "💬",
 			chessRules: "👩‍🏫",
-			about: "ℹ️"
+			about: "ℹ️",
+			randomColor: "☯️",
+			yes: "✅",
+			no: "❎"
 		}
 	}
 	
