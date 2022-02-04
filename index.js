@@ -206,22 +206,64 @@ async function getEngineLevel(senderId) {
 	
 	const select = 'SELECT level FROM games WHERE sender_id = $1;'
 	const selectRes = await client.query(select, [senderId]);
-	let level = selectRes.rows[0].level;
+	const level = selectRes.rows[0].level;
 	await client.end();
 	
 	return level;
 }
 
-function processStartNewGame(senderId) {
-	let quickReply = [];
-	Object.entries(Bot.botLevel).forEach(([key, val]) => {
-		quickReply.push({ content_type: "text", title: val.emoji, payload: val.payload })
-	});
-	chatInterface.sendResponse(senderId, "Starting a new game...", 0)
-	.then(r => chatInterface.sendResponse(senderId, "Choose your opponent:", 1000, quickReply));
+async function getGameStatus(senderId) {
+	const client = await createClient();
+	
+	const select = 'SELECT status FROM games WHERE sender_id = $1;'
+	const selectRes = await client.query(select, [senderId]);
+	const status = selectRes.rows[0].status;
+	await client.end();
+	
+	return status;
 }
 
-function processLevelSelect(senderId, level) {
+async function updateGameStatus(senderId, status) {
+	const client = await createClient();
+	
+	const update = 'UPDATE games SET status = $1 WHERE sender_id = $2 RETURNING *;'
+	const updateRes = await client.query(update, [status, senderId]);
+	await client.end();
+	
+	return updateRes.rowCount;
+}
+
+function processStartNewGame(senderId) {
+	getGameStatus(senderId)
+	.then(status => {
+		if (status === statusInProgress) {
+			const confirmPayload = [{ content_type: "text", title: EmojiChess.symbols.menu.yes + " Yes", payload: "Confirm New Game" },
+				{ content_type: "text", title: EmojiChess.symbols.menu.no + " No", payload: EmojiChess.plGetAvailableMoves }];
+			chatInterface.sendResponse(senderId, "Are you sure you want to start a new game?", 1000, confirmPayload)
+		} else {
+			processShowLevelSelect(senderId);
+		}
+	});
+}
+
+function processConfirmNewGame(senderId) {
+	updateGameStatus(senderId, statusAbandoned)
+	.then(r => {
+		console.log("DEBUG: " + String(r));
+		processShowLevelSelect(senderId);
+	});
+}
+
+function processShowLevelSelect(senderId) {
+	let botPayload = [];
+	Object.entries(Bot.botLevel).forEach(([key, val]) => {
+		botPayload.push({ content_type: "text", title: val.emoji, payload: val.payload })
+	});
+	chatInterface.sendResponse(senderId, "Starting a new game...", 0)
+	.then(r => chatInterface.sendResponse(senderId, "Choose your opponent:", 1000, botPayload));
+}
+
+function processLevelSelected(senderId, level) {
 	newGame(senderId, level);
 	
 	const colorPayload = [{ content_type: "text", title: EmojiChess.symbols.pieces.w.k + " White", payload: "Color|w" },
@@ -230,7 +272,7 @@ function processLevelSelect(senderId, level) {
 	chatInterface.sendResponse(senderId, "Pick a color:", 0, colorPayload);
 }
 
-function processColorSelect(senderId, color) {
+function processColorSelected(senderId, color) {
 	let isWhitePov = (color === 'w');
 	if (color === 'r') {
 		isWhitePov = (Math.random() < 0.5);
@@ -283,7 +325,7 @@ function processMenuOptions(senderId, optionPayload) {
 			chatInterface.sendResponse(senderId, "Menu", 0, Menu.getMenuRootPayload());
 			break;
 		case Menu.plNewGame:
-			
+			processStartNewGame(senderId);
 			break;
 		case Menu.plFlipBoard:
 			flipViewPerspective(senderId).
@@ -316,13 +358,16 @@ function chatController(message, senderId, payload = null) {
 	if (payload != null) {
 		const splitPayload = payload.split('|');
 		switch(splitPayload[0]) {
+			case 'Confirm New Game':
+				processConfirmNewGame(senderId);
+				break;
 			case 'Level':
 				const level = splitPayload[1];
-				processLevelSelect(senderId, level)
+				processLevelSelected(senderId, level)
 				break;
 			case 'Color':
 				const color = splitPayload[1];
-				processColorSelect(senderId, color)
+				processColorSelected(senderId, color)
 				break;
 			case 'Move':
 				processPlayerMove(senderId, splitPayload[1]);
@@ -356,7 +401,7 @@ function chatController(message, senderId, payload = null) {
 	} else {
 		switch(message.toLowerCase()) {
 			case 'new game':
-				processStartNewGame(senderId)
+				processStartNewGame(senderId);
 				break;
 			case 'white':
 				getBoard(senderId, true)
