@@ -13,6 +13,10 @@ class Menu {
 	static plDownloadFen = 'download_fen';
 	static plDownloadPgn = 'download_pgn';
 	
+	static helpPlayingMove1	= 'To make a move, you can either: A) select the piece and move presented in the "quick reply" section, or B) type in the move using Standard Algebraic Notation (SAN).\n\n🅰️ Select a move with quick replies';
+	static helpPlayingMove2 = '🅱️ Type a move using SAN\n\nStandard Algebraic Notation (SAN) is used to describe where a piece has moved to, for each turn in a chess game.\n\nMoves are usually denoted by the piece letter (e.g. R for rook) and the destination square (e.g. Rb1 moves the rook to the b-file on the first rank). Pawn moves are an exception, as they are described using only the destination square (e.g. e4 moves the pawn to the e-file on the fourth rank).\n\n(🤓: Remember that SAN is case sensitive - piece letters are uppercase and coordinates are lowercase!)';
+	static helpPlayingMove3 = 'Captures are denoted with an "x" written before the destination square. For example, Rxb1 refers to the rook capturing a piece on the b1 square, while exd5 refers to the pawn on the e-file capturing a piece on the d5 square.\n\nFor EmojiChess, checks (+) and checkmates (#) do NOT need to be included in the notation when typing a move. Also, castling is denoted using the letter 'O', e.g. O-O for king side castling.\n\nFind out more about algebraic notation, such as how to disambiguate moves for two identical pieces, on Wikipedia: https://en.wikipedia.org/wiki/Algebraic_notation_(chess)';
+	
 	static menuRoot = {
 		[EmojiChess.symbols.menu.newGame + ' New Game']: Menu.plNewGame,
 		[EmojiChess.symbols.menu.flipBoard + ' Flip Board']: Menu.plFlipBoard,

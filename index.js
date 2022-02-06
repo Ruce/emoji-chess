@@ -350,8 +350,9 @@ function processMenuOptions(senderId, optionPayload) {
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
 			break;
 		case Menu.plPlayingMove:
-			const playingMoveMessage = "Just type a move lol 4Head";
-			chatInterface.sendResponse(senderId, playingMoveMessage, 0, Menu.getHelpMenuPayload());
+			chatInterface.sendResponse(senderId, Menu.helpPlayingMove1, 0)
+			.then(r => { chatInterface.sendResponse(senderId, Menu.helpPlayingMove2, 2500); })
+			.then(r => { chatInterface.sendResponse(senderId, Menu.helpPlayingMove3, 2500, Menu.getHelpMenuPayload()); });
 			break;
 		default:
 			console.log("ERROR - Unknown payload at processMenuOptions: " + optionPayload);
