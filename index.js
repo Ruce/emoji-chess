@@ -349,6 +349,10 @@ function processMenuOptions(senderId, optionPayload) {
 		case Menu.plHelpMenu:
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
 			break;
+		case Menu.plPlayingMove:
+			const playingMoveMessage = "Just type a move lol 4Head";
+			chatInterface.sendResponse(senderId, playingMoveMessage, 0, Menu.getHelpMenuPayload());
+			break;
 		default:
 			console.log("ERROR - Unknown payload at processMenuOptions: " + optionPayload);
 	}
@@ -357,7 +361,6 @@ function processMenuOptions(senderId, optionPayload) {
 	const plOtherCommands = 'other_commands';
 	const plChessRules = 'chess_rules';
 	const plAbout = 'about';
-	const plDownloadFen = 'download_fen';
 	const plDownloadPgn = 'download_pgn';
 }
 
