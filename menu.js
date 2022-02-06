@@ -10,6 +10,8 @@ class Menu {
 	static plOtherCommands = 'other_commands';
 	static plChessRules = 'chess_rules';
 	static plAbout = 'about';
+	static plDownloadFen = 'download_fen';
+	static plDownloadPgn = 'download_pgn';
 	
 	static menuRoot = {
 		[EmojiChess.symbols.menu.newGame + ' New Game']: Menu.plNewGame,

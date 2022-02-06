@@ -40,7 +40,9 @@ class EmojiChess {
 			about: "ℹ️",
 			randomColor: "☯️",
 			yes: "✅",
-			no: "❌"
+			no: "❌",
+			fen: "🔢",
+			pgn: "📝"
 		}
 	}
 	

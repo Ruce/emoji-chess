@@ -188,7 +188,7 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 	return {move: moveResult, fen: newFen, board: EmojiChess.outputBoard(chess.board(), moveResult.from, isWhitePov), gameOver: gameOver, status: status, availableMoves: availableMoves};
 }
 
-async function getBoard(senderId, isWhitePov = true) {
+async function getPosition(senderId, isWhitePov = true) {
 	const client = await createClient();
 	
 	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
@@ -198,7 +198,7 @@ async function getBoard(senderId, isWhitePov = true) {
 	const chess = new Chess(fen);
 	await client.end();
 	
-	return EmojiChess.outputBoard(chess.board(), null, isWhitePov);
+	return {fen: fen, board: EmojiChess.outputBoard(chess.board(), null, isWhitePov)};
 }
 
 async function getEngineLevel(senderId) {
@@ -239,7 +239,7 @@ function processStartNewGame(senderId) {
 		if (status === statusInProgress) {
 			const confirmPayload = [{ content_type: "text", title: EmojiChess.symbols.menu.yes + " Yes", payload: "Confirm New Game" },
 				{ content_type: "text", title: EmojiChess.symbols.menu.no + " No", payload: EmojiChess.plGetAvailableMoves }];
-			chatInterface.sendResponse(senderId, "Are you sure you want to start a new game?", 1000, confirmPayload)
+			chatInterface.sendResponse(senderId, "Confirm start a new game?", 1000, confirmPayload)
 		} else {
 			processShowLevelSelect(senderId);
 		}
@@ -328,14 +328,23 @@ function processMenuOptions(senderId, optionPayload) {
 			processStartNewGame(senderId);
 			break;
 		case Menu.plFlipBoard:
-			flipViewPerspective(senderId).
-			then(position => {
+			flipViewPerspective(senderId)
+			.then(position => {
 				chatInterface.sendResponse(senderId, "Move X\n" + position.board, 0);
 				return position;
 			})
 			.then(position => {
 				chatInterface.sendResponse(senderId, position.availableMoves.message, 1500, position.availableMoves.replies);
 			});
+			break;
+		case Menu.plDownloadGame:
+			const downloadPayload = [{ content_type: "text", title: EmojiChess.symbols.menu.fen + " Download FEN", payload: "Menu|" + Menu.plDownloadFen },
+			{ content_type: "text", title: EmojiChess.symbols.menu.pgn + " Download PGN", payload: "Menu|" + Menu.plDownloadPgn }];
+			chatInterface.sendResponse(senderId, "Choose a format:", 0, downloadPayload);
+			break;
+		case Menu.plDownloadFen:
+			getPosition(senderId)
+			.then(position => { chatInterface.sendResponse(senderId, position.fen, 0); });
 			break;
 		case Menu.plHelpMenu:
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
@@ -344,14 +353,12 @@ function processMenuOptions(senderId, optionPayload) {
 			console.log("ERROR - Unknown payload at processMenuOptions: " + optionPayload);
 	}
 	
-	const plNewGame = 'new_game';
-	const plFlipBoard = 'flip_board';
-	const plDownloadGame = 'download_game';
-	const plHelpMenu = 'help_menu';
 	const plPlayingMove = 'playing_move';
 	const plOtherCommands = 'other_commands';
 	const plChessRules = 'chess_rules';
 	const plAbout = 'about';
+	const plDownloadFen = 'download_fen';
+	const plDownloadPgn = 'download_pgn';
 }
 
 function chatController(message, senderId, payload = null) {
@@ -404,12 +411,12 @@ function chatController(message, senderId, payload = null) {
 				processStartNewGame(senderId);
 				break;
 			case 'white':
-				getBoard(senderId, true)
-				.then(board => { chatInterface.sendResponse(senderId, "White POV\n" + board, 0); });
+				getPosition(senderId, true)
+				.then(position => { chatInterface.sendResponse(senderId, "White POV\n" + position.board, 0); });
 				break;
 			case 'black':
-				getBoard(senderId, false)
-				.then(board => { chatInterface.sendResponse(senderId, "Black POV\n" + board, 0); });
+				getPosition(senderId, false)
+				.then(position => { chatInterface.sendResponse(senderId, "Black POV\n" + position.board, 0); });
 				break;
 			case 'menu':
 				processMenuOptions(senderId, EmojiChess.plMenuRoot);
