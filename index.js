@@ -351,8 +351,8 @@ function processMenuOptions(senderId, optionPayload) {
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
 			break;
 		case Menu.plPlayingMove:
-			const playingMovePayload = [{ content_type: "text", title: "🅰️ How to select a move", payload: "Menu|" + Menu.plPlayingMoveA },
-			{ content_type: "text", title: "🅱️ Learn more about SAN", payload: "Menu|" + Menu.plPlayingMoveB },
+			const playingMovePayload = [{ content_type: "text", title: "🅰️ Selecting a move", payload: "Menu|" + Menu.plPlayingMoveA },
+			{ content_type: "text", title: "🅱️ More about SAN", payload: "Menu|" + Menu.plPlayingMoveB },
 			{ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + Menu.plHelpMenu }];
 			chatInterface.sendResponse(senderId, Menu.helpPlayingMove, 0, playingMovePayload)
 			break;
