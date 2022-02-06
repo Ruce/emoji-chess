@@ -339,7 +339,8 @@ function processMenuOptions(senderId, optionPayload) {
 			break;
 		case Menu.plDownloadGame:
 			const downloadPayload = [{ content_type: "text", title: EmojiChess.symbols.menu.fen + " Download FEN", payload: "Menu|" + Menu.plDownloadFen },
-			{ content_type: "text", title: EmojiChess.symbols.menu.pgn + " Download PGN", payload: "Menu|" + Menu.plDownloadPgn }];
+			{ content_type: "text", title: EmojiChess.symbols.menu.pgn + " Download PGN", payload: "Menu|" + Menu.plDownloadPgn },
+			{ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + EmojiChess.plMenuRoot }];
 			chatInterface.sendResponse(senderId, "Choose a format:", 0, downloadPayload);
 			break;
 		case Menu.plDownloadFen:
@@ -350,10 +351,20 @@ function processMenuOptions(senderId, optionPayload) {
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
 			break;
 		case Menu.plPlayingMove:
-			chatInterface.sendResponse(senderId, Menu.helpPlayingMove1, 0)
-			.then(r => { chatInterface.sendResponse(senderId, Menu.helpPlayingMove2, 2500); })
-			.then(r => { chatInterface.sendResponse(senderId, Menu.helpPlayingMove3, 2500, Menu.getHelpMenuPayload()); });
+			const playingMovePayload = [{ content_type: "text", title: "🅰️ How to select a move", payload: "Menu|" + Menu.plPlayingMoveA },
+			{ content_type: "text", title: "🅱️ Learn more about SAN", payload: "Menu|" + Menu.plPlayingMoveB },
+			{ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + Menu.plHelpMenu }];
+			chatInterface.sendResponse(senderId, Menu.helpPlayingMove, 0, playingMovePayload)
 			break;
+		case Menu.plPlayingMoveA:
+			const playingMoveAPayload = [{ content_type: "text", title: "🅱️ Learn more about SAN", payload: "Menu|" + Menu.plPlayingMoveB },
+			{ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + Menu.plHelpMenu }];
+			chatInterface.sendResponse(senderId, Menu.helpPlayingMoveA, 0, playingMoveAPayload);
+			break;
+		case Menu.plPlayingMoveB:
+			const playingMoveBPayload = [{ content_type: "text", title: "🅰️ How to select a move", payload: "Menu|" + Menu.plPlayingMoveA },
+			{ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + Menu.plHelpMenu }];
+			chatInterface.sendResponse(senderId, Menu.helpPlayingMoveB, 0, playingMoveBPayload);
 		default:
 			console.log("ERROR - Unknown payload at processMenuOptions: " + optionPayload);
 	}
