@@ -5,6 +5,8 @@ class ChatInterface {
     constructor(endpointUrl, accessToken) {
 		this.messageUrl = endpointUrl + new URLSearchParams({access_token: accessToken})
 	}
+	
+	static typingIndicatorMaxDelay = 500;
 
 	async postData(data = {}) {
 		const response = await fetch(this.messageUrl, {
@@ -32,8 +34,13 @@ class ChatInterface {
 	async sendResponse(senderId, message, sendDelay, quickReplies = null) {
 		if (sendDelay && sendDelay > 0) {
 			// Turn on typing indicator and add a short delay so that messages feel like they're being typed out
+			// Typing indicator also needs to be delayed, otherwise it can be clipped by a previous message
+			const typingIndicatorDelay = Math.min(ChatInterface.typingIndicatorMaxDelay, sendDelay / 2);
+			const remainingDelay = sendDelay - typingIndicatorDelay;
+			
+			await new Promise(r => setTimeout(r, typingIndicatorDelay));
 			this.typingOn(senderId);
-			await new Promise(r => setTimeout(r, sendDelay));
+			await new Promise(r => setTimeout(r, remainingDelay));
 		}
 		
 		let messageBody = {

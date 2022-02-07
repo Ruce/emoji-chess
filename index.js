@@ -357,19 +357,19 @@ function processMenuOptions(senderId, optionPayload) {
 			chatInterface.sendResponse(senderId, Menu.helpPlayingMove, 0, playingMovePayload)
 			break;
 		case Menu.plPlayingMoveA:
-			const playingMoveAPayload = [{ content_type: "text", title: "🅱️ Learn more about SAN", payload: "Menu|" + Menu.plPlayingMoveB },
+			const playingMoveAPayload = [{ content_type: "text", title: "🅱️ More about SAN", payload: "Menu|" + Menu.plPlayingMoveB },
 			{ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + Menu.plHelpMenu }];
 			chatInterface.sendResponse(senderId, Menu.helpPlayingMoveA, 0, playingMoveAPayload);
 			break;
 		case Menu.plPlayingMoveB:
-			const playingMoveBPayload = [{ content_type: "text", title: "🅰️ How to select a move", payload: "Menu|" + Menu.plPlayingMoveA },
+			const playingMoveBPayload = [{ content_type: "text", title: "🅰️ Selecting a move", payload: "Menu|" + Menu.plPlayingMoveA },
 			{ content_type: "text", title: EmojiChess.symbols.menu.back, payload: "Menu|" + Menu.plHelpMenu }];
-			chatInterface.sendResponse(senderId, Menu.helpPlayingMoveB, 0, playingMoveBPayload);
+			chatInterface.sendResponse(senderId, Menu.helpPlayingMoveB1, 0)
+			.then(r => { chatInterface.sendResponse(senderId, Menu.helpPlayingMoveB2, 1500, playingMoveBPayload); });
 		default:
 			console.log("ERROR - Unknown payload at processMenuOptions: " + optionPayload);
 	}
 	
-	const plPlayingMove = 'playing_move';
 	const plOtherCommands = 'other_commands';
 	const plChessRules = 'chess_rules';
 	const plAbout = 'about';
