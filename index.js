@@ -51,7 +51,7 @@ async function newGame(senderId, level) {
 	
 	// Archive previous game that are not "blank" entries
 	// A record may be "blank" if it was created but the game was never started
-	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, level, status, is_player_white, created_on FROM games WHERE sender_id = $1 AND fen IS NOT NULL;'
+	const transfer = 'INSERT INTO games_archive SELECT sender_id, fen, pgn, level, status, is_player_white, created_on FROM games WHERE sender_id = $1 AND fen IS NOT NULL;'
 	const transferRes = await client.query(transfer, [senderId]);
 	
 	// Delete old game(s) from the `game` table including any "blank" entries
@@ -67,12 +67,25 @@ async function newGame(senderId, level) {
 }
 
 async function startGame(senderId, isWhitePov) {
+	function getFormattedDate() {
+		let now = new Date(Date.now());
+		let iso = now.toISOString();
+		return iso.slice(0, 10).replaceAll('-', '.');
+	}
+	
 	const client = await createClient();
 	const chess = new Chess();
 	const isBotsTurn = !isWhitePov;
 	
-	const update = 'UPDATE games SET fen = $1, status = $2, is_player_white = $3, is_white_pov = $3, is_bots_turn = $4 WHERE sender_id = $5';
-	const updateRes = await client.query(update, [chess.fen(), statusInProgress, isWhitePov, isBotsTurn, senderId]);
+	chess.headers('Site', 'EmojiChess', 'Date', getFormattedDate(), 'Result', '*');
+	if (isBotsTurn) {
+		chess.headers('White', 'Bot', 'Black', 'Player');
+	} else {
+		chess.headers('White', 'Player', 'Black', 'Bot');
+	}
+	
+	const update = 'UPDATE games SET fen = $1, pgn = $2, status = $3, is_player_white = $4, is_white_pov = $4, is_bots_turn = $5 WHERE sender_id = $6';
+	const updateRes = await client.query(update, [chess.fen(), chess.pgn(), statusInProgress, isWhitePov, isBotsTurn, senderId]);
 	
 	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null, isWhitePov), availableMoves: availableMoves};

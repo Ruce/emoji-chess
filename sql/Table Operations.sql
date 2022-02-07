@@ -3,6 +3,7 @@ CREATE TYPE game_status AS ENUM ('In Progress', 'White Won', 'Black Won', 'Draw'
 CREATE TABLE games (
     sender_id       varchar(30) PRIMARY KEY,
     fen             varchar(100),
+    pgn             text,
     level           integer,
     status          game_status,
     is_player_white boolean,
@@ -15,6 +16,7 @@ CREATE TABLE games (
 CREATE TABLE games_archive (
     sender_id       varchar(30),
     fen             varchar(100),
+    pgn             text,
     level           integer,
     status          game_status,
     is_player_white boolean,
