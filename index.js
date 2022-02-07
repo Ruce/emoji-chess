@@ -230,9 +230,13 @@ async function getGameStatus(senderId) {
 	
 	const select = 'SELECT status FROM games WHERE sender_id = $1;'
 	const selectRes = await client.query(select, [senderId]);
-	const status = selectRes.rows[0].status;
 	await client.end();
 	
+	if (selectRes.rowCount === 0) {
+		return null;
+	}
+	
+	const status = selectRes.rows[0].status;
 	return status;
 }
 
