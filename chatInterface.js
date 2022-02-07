@@ -6,7 +6,7 @@ class ChatInterface {
 		this.messageUrl = endpointUrl + new URLSearchParams({access_token: accessToken})
 	}
 	
-	static typingIndicatorMaxDelay = 500;
+	static typingIndicatorMaxDelay = 600;
 
 	async postData(data = {}) {
 		const response = await fetch(this.messageUrl, {
