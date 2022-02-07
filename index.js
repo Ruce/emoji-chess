@@ -77,11 +77,11 @@ async function startGame(senderId, isWhitePov) {
 	const chess = new Chess();
 	const isBotsTurn = !isWhitePov;
 	
-	chess.headers('Site', 'EmojiChess', 'Date', getFormattedDate(), 'Result', '*');
+	chess.header('Site', 'EmojiChess', 'Date', getFormattedDate(), 'Result', '*');
 	if (isBotsTurn) {
-		chess.headers('White', 'Bot', 'Black', 'Player');
+		chess.header('White', 'Bot', 'Black', 'Player');
 	} else {
-		chess.headers('White', 'Player', 'Black', 'Bot');
+		chess.header('White', 'Player', 'Black', 'Bot');
 	}
 	
 	const update = 'UPDATE games SET fen = $1, pgn = $2, status = $3, is_player_white = $4, is_white_pov = $4, is_bots_turn = $5 WHERE sender_id = $6';
@@ -256,7 +256,7 @@ function processStartNewGame(senderId) {
 		if (status === statusInProgress) {
 			const confirmPayload = [{ content_type: "text", title: EmojiChess.symbols.menu.yes + " Yes", payload: "Confirm New Game" },
 				{ content_type: "text", title: EmojiChess.symbols.menu.no + " No", payload: EmojiChess.plGetAvailableMoves }];
-			chatInterface.sendResponse(senderId, "Confirm start a new game?", 1000, confirmPayload)
+			chatInterface.sendResponse(senderId, "Confirm start a new game?", 1000, confirmPayload);
 		} else {
 			processShowLevelSelect(senderId);
 		}
