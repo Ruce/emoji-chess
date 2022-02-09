@@ -173,18 +173,20 @@ const chess = new Chess(); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq
 
 //console.log(availableMoves(chess.moves()));
 
-chess.header('White', 'TestW', 'Black', 'TestB');
+chess.header('Site', 'EmojiChess', 'Date', '2022-02-08', 'White', 'Player', 'Black', 'Bot');
+const pgn = chess.pgn();
 
 const board = chess.board()
 console.log(chess.moves())
 console.log('--- Start PGN ---')
-console.log(chess.pgn())
+console.log(pgn)
 console.log('--- End PGN ---')
 console.log(chess.fen())
 console.log(chess.ascii())
 
 const newGame = new Chess();
-newGame.load_pgn(chess.pgn() + '\n*');
+let newRes = newGame.load_pgn(pgn + '\n*');
+console.log(newRes);
 newGame.move('e4');
 newGame.move('f6');
 newGame.move('d3');
