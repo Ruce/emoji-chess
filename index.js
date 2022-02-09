@@ -84,8 +84,9 @@ async function startGame(senderId, isWhitePov) {
 		chess.header('White', 'Player', 'Black', 'Bot');
 	}
 	
+	const pgn = chess.pgn({ newline_char: '\n' }) + '\n\n*';
 	const update = 'UPDATE games SET fen = $1, pgn = $2, status = $3, is_player_white = $4, is_white_pov = $4, is_bots_turn = $5 WHERE sender_id = $6';
-	const updateRes = await client.query(update, [chess.fen(), chess.pgn(), statusInProgress, isWhitePov, isBotsTurn, senderId]);
+	const updateRes = await client.query(update, [chess.fen(), pgn, statusInProgress, isWhitePov, isBotsTurn, senderId]);
 	
 	const availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 	return {fen: chess.fen(), board: EmojiChess.outputBoard(chess.board(), null, isWhitePov), availableMoves: availableMoves};
@@ -129,7 +130,7 @@ async function flipViewPerspective(senderId) {
 async function loadAvailableMoves(senderId) {
 	const client = await createClient();
 	
-	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
+	const select = 'SELECT fen FROM games WHERE sender_id = $1;';
 	const selectRes = await client.query(select, [senderId]);
 	const fen = selectRes.rows[0].fen;
 	
@@ -140,13 +141,16 @@ async function loadAvailableMoves(senderId) {
 async function makeMove(senderId, move, replyAvailableMoves = true) {
 	const client = await createClient();
 	
-	const select = 'SELECT fen, is_white_pov FROM games WHERE sender_id = $1;'
+	const select = 'SELECT fen, pgn, is_white_pov FROM games WHERE sender_id = $1;'
 	const selectRes = await client.query(select, [senderId]);
 	const fen = selectRes.rows[0].fen;
+	const pgn = selectRes.rows[0].pgn;
 	const isWhitePov = selectRes.rows[0].is_white_pov;
 	console.log('Old fen: ' + fen);
 	
-	const chess = new Chess(fen);
+	const chess = new Chess();
+	chess.load_pgn(pgn);
+	
 	let moveResult = chess.move(move);
 	if (moveResult == null) {
 		// moveResult is null if the input move is invalid
@@ -163,24 +167,34 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 			status = statusCheckmate;
 		} else if (chess.insufficient_material()) {
 			status = statusMaterial;
+			chess.header('Result', '1/2-1/2');
 		} else if (chess.in_draw()) {
 			// Draw due to 50-move rule (or insufficient material, but already caught above)
 			status = statusDraw;
+			chess.header('Result', '1/2-1/2');
 		} else if (chess.in_stalemate()) {
 			status = statusStalemate;
+			chess.header('Result', '1/2-1/2');
 		} else if (chess.in_threefold_repetition()) {
-			// TO DO: Cannot detect threefold repetition when calling FEN from scratch
+			//Note: Cannot detect threefold repetition if loading a game from FEN
 			status = statusRepetition;
+			chess.header('Result', '1/2-1/2');
 		}
 		
 		// If checkmate, differentiate between white/black win when recording status to database
 		let gameStatus = status;
 		if (gameStatus === statusCheckmate) {
-			gameStatus = (moveResult.color === 'w') ? statusWhiteWon : statusBlackWon;
+			if (moveResult.color === 'w') {
+				gameStatus = statusWhiteWon;
+				chess.header('Result', '1-0');
+			} else {
+				gameStatus = statusBlackWon;
+				chess.header('Result', '0-1');
+			}
 		}
 		
-		let update = 'UPDATE games SET fen = $1, status = $2 WHERE sender_id = $3 RETURNING *;'
-		let updateRes = await client.query(update, [newFen, gameStatus, senderId]);
+		let update = 'UPDATE games SET fen = $1, pgn = $2, status = $3 WHERE sender_id = $4 RETURNING *;'
+		let updateRes = await client.query(update, [newFen, chess.pgn(), gameStatus, senderId]);
 	} else {
 		if (chess.in_check()) {
 			status = statusCheck;
@@ -190,11 +204,10 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 			availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 		}
 		
-		let update = 'UPDATE games SET fen = $1 WHERE sender_id = $2 RETURNING *;'
-		let updateRes = await client.query(update, [newFen, senderId]);
+		let update = 'UPDATE games SET fen = $1, pgn = $2 WHERE sender_id = $3 RETURNING *;'
+		let updateRes = await client.query(update, [newFen, chess.pgn(), senderId]);
 	}
 	
-
 	console.log('New fen: ' + newFen);
 	
 	await client.end();
@@ -256,7 +269,7 @@ function processStartNewGame(senderId) {
 		if (status === statusInProgress) {
 			const confirmPayload = [{ content_type: "text", title: EmojiChess.symbols.menu.yes + " Yes", payload: "Confirm New Game" },
 				{ content_type: "text", title: EmojiChess.symbols.menu.no + " No", payload: EmojiChess.plGetAvailableMoves }];
-			chatInterface.sendResponse(senderId, "Confirm start a new game?", 1000, confirmPayload);
+			chatInterface.sendResponse(senderId, "Start a new game?", 1000, confirmPayload);
 		} else {
 			processShowLevelSelect(senderId);
 		}

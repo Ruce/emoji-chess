@@ -159,11 +159,11 @@ const chess = new Chess(); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq
 //const chess = new Chess("3qkbnr/pPpppppp/4b3/8/1P1P4/PR1RP3/1N1B1PPP/3QKBN1 w - - 0 1");
 //const chess = new Chess("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4");
 
-while (!chess.game_over()) {
-	const moves = chess.moves()
-	const move = moves[Math.floor(Math.random() * moves.length)]
-	chess.move(move)
-}
+//while (!chess.game_over()) {
+//	const moves = chess.moves()
+//	const move = moves[Math.floor(Math.random() * moves.length)]
+//	chess.move(move)
+//}
 
 //for (let k = 0; k < 3; k++) {
 //	const moves = chess.moves()
@@ -182,6 +182,23 @@ console.log(chess.pgn())
 console.log('--- End PGN ---')
 console.log(chess.fen())
 console.log(chess.ascii())
+
+const newGame = new Chess();
+newGame.header('White', 'IsW', 'Black', 'IsB');
+newGame.load_pgn(chess.pgn() + '\n*');
+newGame.move('e4');
+newGame.move('f6');
+newGame.move('d3');
+newGame.move('g5');
+console.log(newGame.pgn());
+const newRes = newGame.load_pgn(newGame.pgn());
+console.log(newRes);
+newGame.move('Qh5');
+
+newGame.header('Result', '1-0');
+console.log(newGame.pgn());
+
+
 
 //console.log('8️⃣🕋🐴🏃🏿👸🏿🤴🏿🏃🏿🐴🕋7️⃣️♟♟️♟️♟️♟️♟️♟️♟️6️⃣⬜⬛⬜⬛⬜⬛⬜⬛5️⃣⬛⬜⬛⬜⬛⬜⬛⬜4️⃣⬜⬛⬜⬛⬜⬛⬜⬛3️⃣⬛⬜⬛⬜⬛⬜⬛⬜2️⃣🕯️🕯️🕯️🕯️🕯️🕯️🕯️🕯️1️⃣🏰🦄🏃🏻👸🏻🤴🏻🏃🏻🦄🏰🏁🇦​🇧​🇨​🇩​🇪​🇫​🇬​🇭')
 
