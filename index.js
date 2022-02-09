@@ -77,14 +77,11 @@ async function startGame(senderId, isWhitePov) {
 	const chess = new Chess();
 	const isBotsTurn = !isWhitePov;
 	
-	chess.header('Site', 'EmojiChess', 'Date', getFormattedDate(), 'Result', '*');
-	if (isBotsTurn) {
-		chess.header('White', 'Bot', 'Black', 'Player');
-	} else {
-		chess.header('White', 'Player', 'Black', 'Bot');
-	}
-	
+	const whiteName = isBotsTurn ? 'Bot' : 'Player';
+	const blackName = isBotsTurn ? 'Player' : 'Bot';
+	chess.header('Site', 'EmojiChess', 'Date', getFormattedDate(), 'White', whiteName, 'Black', blackName, 'Result', '*');
 	const pgn = chess.pgn({ newline_char: '\n' }) + '\n\n*';
+	
 	const update = 'UPDATE games SET fen = $1, pgn = $2, status = $3, is_player_white = $4, is_white_pov = $4, is_bots_turn = $5 WHERE sender_id = $6';
 	const updateRes = await client.query(update, [chess.fen(), pgn, statusInProgress, isWhitePov, isBotsTurn, senderId]);
 	

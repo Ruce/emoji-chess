@@ -184,15 +184,12 @@ console.log(chess.fen())
 console.log(chess.ascii())
 
 const newGame = new Chess();
-newGame.header('White', 'IsW', 'Black', 'IsB');
 newGame.load_pgn(chess.pgn() + '\n*');
 newGame.move('e4');
 newGame.move('f6');
 newGame.move('d3');
 newGame.move('g5');
 console.log(newGame.pgn());
-const newRes = newGame.load_pgn(newGame.pgn());
-console.log(newRes);
 newGame.move('Qh5');
 
 newGame.header('Result', '1-0');
