@@ -3,6 +3,8 @@ const EmojiChess = require('./emojiChess.js');
 class Menu {
 	// Payloads for various menu button options
 	static plNewGame = 'new_game';
+	static plShowBoard = 'show_board'; // TODO
+	static plMoveHistory = 'move_history'; // TODO
 	static plFlipBoard = 'flip_board';
 	static plDownloadGame = 'download_game';
 	static plHelpMenu = 'help_menu';

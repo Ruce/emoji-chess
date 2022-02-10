@@ -148,14 +148,15 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 	const chess = new Chess();
 	chess.load_pgn(pgn);
 	
-	let moveResult = chess.move(move);
+	const moveResult = chess.move(move);
 	if (moveResult == null) {
 		// moveResult is null if the input move is invalid
 		return {move: moveResult};
 	}
 	
-	let newFen = chess.fen();
-	let gameOver = chess.game_over();
+	const newFen = chess.fen();
+	const gameOver = chess.game_over();
+	const moveNum = Math.ceil(chess.history().length / 2);
 	let status = null;
 	let availableMoves = null;
 	if (gameOver) {
@@ -190,7 +191,7 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 			}
 		}
 		
-		let update = 'UPDATE games SET fen = $1, pgn = $2, status = $3 WHERE sender_id = $4 RETURNING *;'
+		let update = 'UPDATE games SET fen = $1, pgn = $2, status = $3 WHERE sender_id = $4 RETURNING *;';
 		let updateRes = await client.query(update, [newFen, chess.pgn(), gameStatus, senderId]);
 	} else {
 		if (chess.in_check()) {
@@ -201,14 +202,14 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 			availableMoves = EmojiChess.getAvailableMoves(chess.moves({ verbose: true }));
 		}
 		
-		let update = 'UPDATE games SET fen = $1, pgn = $2 WHERE sender_id = $3 RETURNING *;'
+		let update = 'UPDATE games SET fen = $1, pgn = $2 WHERE sender_id = $3 RETURNING *;';
 		let updateRes = await client.query(update, [newFen, chess.pgn(), senderId]);
 	}
 	
 	console.log('New fen: ' + newFen);
 	
 	await client.end();
-	return {move: moveResult, fen: newFen, board: EmojiChess.outputBoard(chess.board(), moveResult.from, isWhitePov), gameOver: gameOver, status: status, availableMoves: availableMoves};
+	return {move: moveResult, moveNum: moveNum, fen: newFen, board: EmojiChess.outputBoard(chess.board(), moveResult.from, isWhitePov), gameOver: gameOver, status: status, availableMoves: availableMoves};
 }
 
 async function getPosition(senderId, isWhitePov = true) {
@@ -219,10 +220,12 @@ async function getPosition(senderId, isWhitePov = true) {
 	
 	const fen = selectRes.rows[0].fen;
 	const pgn = selectRes.rows[0].pgn;
-	const chess = new Chess(fen);
-	await client.end();
+	const chess = new Chess();
+	chess.load_pgn(pgn);
+	const moveNum = Math.ceil(chess.history().length / 2);
 	
-	return {fen: fen, pgn: pgn, board: EmojiChess.outputBoard(chess.board(), null, isWhitePov)};
+	await client.end();
+	return {fen: fen, pgn: pgn, moveNum: moveNum, board: EmojiChess.outputBoard(chess.board(), null, isWhitePov)};
 }
 
 async function getEngineLevel(senderId) {
@@ -300,6 +303,10 @@ function processLevelSelected(senderId, level) {
 	chatInterface.sendResponse(senderId, "Pick a color:", 0, colorPayload);
 }
 
+function displayHelpMenu(senderId) {
+	chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
+}
+
 function processColorSelected(senderId, color) {
 	let isWhitePov = (color === 'w');
 	if (color === 'r') {
@@ -329,7 +336,7 @@ function processPlayerMove(senderId, move) {
 	.then(position => {
 		if (position.move != null) {
 			console.log(position.board);
-			chatInterface.sendResponse(senderId, "Your move: " + move + "\n\nMove X\n" + position.board, 0);
+			chatInterface.sendResponse(senderId, `Your move: ${move}\n\nMove ${position.moveNum}\n${position.board}`, 0);
 			
 			if (position.gameOver) {
 				chatInterface.sendResponse(senderId, "Game over! " + position.status, 0);
@@ -358,7 +365,7 @@ function processMenuOptions(senderId, optionPayload) {
 		case Menu.plFlipBoard:
 			flipViewPerspective(senderId)
 			.then(position => {
-				chatInterface.sendResponse(senderId, "Move X\n" + position.board, 0);
+				chatInterface.sendResponse(senderId, "Move " + position.moveNum + "\n" + position.board, 0);
 				return position;
 			})
 			.then(position => {
@@ -380,7 +387,7 @@ function processMenuOptions(senderId, optionPayload) {
 			.then(position => { chatInterface.sendResponse(senderId, position.pgn, 0, Menu.getMenuRootPayload()); });
 			break;
 		case Menu.plHelpMenu:
-			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
+			displayHelpMenu(senderId);
 			break;
 		case Menu.plPlayingMove:
 			const playingMovePayload = [{ content_type: "text", title: "🅰️ Selecting a move", payload: "Menu|" + Menu.plPlayingMoveA },
@@ -409,7 +416,6 @@ function processMenuOptions(senderId, optionPayload) {
 	
 	const plOtherCommands = 'other_commands';
 	const plChessRules = 'chess_rules';
-	const plDownloadPgn = 'download_pgn';
 }
 
 function chatController(message, senderId, payload = null) {
@@ -463,14 +469,17 @@ function chatController(message, senderId, payload = null) {
 				break;
 			case 'white':
 				getPosition(senderId, true)
-				.then(position => { chatInterface.sendResponse(senderId, "White POV\n" + position.board, 0); });
+				.then(position => { chatInterface.sendResponse(senderId, "Showing board from\nwhite's view" + position.board, 0); });
 				break;
 			case 'black':
 				getPosition(senderId, false)
-				.then(position => { chatInterface.sendResponse(senderId, "Black POV\n" + position.board, 0); });
+				.then(position => { chatInterface.sendResponse(senderId, "Showing board from\nblack's view" + position.board, 0); });
 				break;
 			case 'menu':
 				processMenuOptions(senderId, EmojiChess.plMenuRoot);
+				break;
+			case 'help':
+				displayHelpMenu(senderId);
 				break;
 			default:
 				processPlayerMove(senderId, message);

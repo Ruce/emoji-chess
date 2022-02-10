@@ -187,15 +187,21 @@ console.log(chess.ascii())
 const newGame = new Chess();
 let newRes = newGame.load_pgn(pgn + '\n*');
 console.log(newRes);
+console.log(Math.ceil(newGame.history().length / 2));
 newGame.move('e4');
+console.log(Math.ceil(newGame.history().length / 2));
 newGame.move('f6');
+console.log(Math.ceil(newGame.history().length / 2));
 newGame.move('d3');
+console.log(Math.ceil(newGame.history().length / 2));
 newGame.move('g5');
+console.log(Math.ceil(newGame.history().length / 2));
 console.log(newGame.pgn());
 newGame.move('Qh5');
 
 newGame.header('Result', '1-0');
 console.log(newGame.pgn());
+console.log(newGame.history());
 
 
 
