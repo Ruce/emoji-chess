@@ -182,8 +182,7 @@ class Bot {
 			}
 			
 			console.log(position.board);
-			let response = Bot.botLevel[level].emoji + "'s move: " + position.move.san;
-			response += "\n\n" + "Move X\n" + position.board;
+			let response = `${Bot.botLevel[level].emoji}'s move: ${position.move.san}\n\nMove ${position.moveNum}\n${position.board}`;
 			
 			this.chatInterface.sendResponse(senderId, response, 1000)
 			.then(r => {
