@@ -214,14 +214,15 @@ async function makeMove(senderId, move, replyAvailableMoves = true) {
 async function getPosition(senderId, isWhitePov = true) {
 	const client = await createClient();
 	
-	const select = 'SELECT fen FROM games WHERE sender_id = $1;'
+	const select = 'SELECT fen, pgn FROM games WHERE sender_id = $1;'
 	const selectRes = await client.query(select, [senderId]);
 	
-	let fen = selectRes.rows[0].fen;
+	const fen = selectRes.rows[0].fen;
+	const pgn = selectRes.rows[0].pgn;
 	const chess = new Chess(fen);
 	await client.end();
 	
-	return {fen: fen, board: EmojiChess.outputBoard(chess.board(), null, isWhitePov)};
+	return {fen: fen, pgn: pgn, board: EmojiChess.outputBoard(chess.board(), null, isWhitePov)};
 }
 
 async function getEngineLevel(senderId) {
@@ -373,6 +374,10 @@ function processMenuOptions(senderId, optionPayload) {
 		case Menu.plDownloadFen:
 			getPosition(senderId)
 			.then(position => { chatInterface.sendResponse(senderId, position.fen, 0); });
+			break;
+		case Menu.plDownloadPgn:
+			getPosition(senderId)
+			.then(position => { chatInterface.sendResponse(senderId, position.pgn, 0); });
 			break;
 		case Menu.plHelpMenu:
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
