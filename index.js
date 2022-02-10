@@ -373,11 +373,11 @@ function processMenuOptions(senderId, optionPayload) {
 			break;
 		case Menu.plDownloadFen:
 			getPosition(senderId)
-			.then(position => { chatInterface.sendResponse(senderId, position.fen, 0); });
+			.then(position => { chatInterface.sendResponse(senderId, position.fen, 0, Menu.getMenuRootPayload()); });
 			break;
 		case Menu.plDownloadPgn:
 			getPosition(senderId)
-			.then(position => { chatInterface.sendResponse(senderId, position.pgn, 0); });
+			.then(position => { chatInterface.sendResponse(senderId, position.pgn, 0, Menu.getMenuRootPayload()); });
 			break;
 		case Menu.plHelpMenu:
 			chatInterface.sendResponse(senderId, "Help", 0, Menu.getHelpMenuPayload());
