@@ -280,7 +280,6 @@ function processStartNewGame(senderId) {
 function processConfirmNewGame(senderId) {
 	updateGameStatus(senderId, statusAbandoned)
 	.then(r => {
-		console.log("DEBUG: " + String(r));
 		processShowLevelSelect(senderId);
 	});
 }
@@ -482,7 +481,11 @@ function chatController(message, senderId, payload = null) {
 				displayHelpMenu(senderId);
 				break;
 			default:
-				processPlayerMove(senderId, message);
+				if (message.length < 10 && (message.match(/[1-8]/) || message.indexOf('O-O') > -1)) {
+					processPlayerMove(senderId, message);
+				} else {
+					chatInterface.sendResponse(senderId, "Command not found", 0, Menu.getHelpMenuPayload());
+				}
 		}
 	}
 }

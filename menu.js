@@ -23,7 +23,7 @@ class Menu {
 	static helpPlayingMoveB1 = '🅱️ Type a move in SAN\n\nMoves in SAN are usually denoted by the piece letter (e.g. R for rook) and the destination square (e.g. Rb1 moves the rook to the b-file on the first rank). Pawn moves are an exception, as they are described using only the destination square (e.g. e4 moves the pawn to the e-file on the fourth rank).\n\n🤓 says: Remember that \'K\' is for King, while \'N\' is for kNight!';
 	static helpPlayingMoveB2 = 'Captures are denoted with an "x" written before the destination square. For example, Rxb1 refers to the rook capturing a piece on the b1 square, while exd5 refers to the pawn on the e-file capturing a piece on the d5 square. (🤓 adds: SAN is case sensitive - piece letters are uppercase and coordinates are lowercase!)\n\nIn EmojiChess, checks (+) and checkmates (#) do not need to be included when typing a move. Castling is denoted using the letter \'O\', e.g. O-O to castle king side.\n\nFor a full breakdown of SAN, check out the Wikipedia article https://en.wikipedia.org/wiki/Algebraic_notation_(chess)';
 	
-	static helpAbout = EmojiChess.symbols.pieces.b.p + ' EmojiChess is a non-commercial side project made by the developers at DetoxAI (www.detoxai.com). EmojiChess does not claim any rights against the emoji icons designed by Meta Facebook.'
+	static helpAbout = EmojiChess.symbols.pieces.b.p + ' EmojiChess is a non-commercial side project made by the developers at DetoxAI (www.detoxai.com). Computer moves are partly powered by the Stockfish chess engine. EmojiChess does not claim any rights against the emoji icons designed by Meta Facebook.'
 	
 	static menuRoot = {
 		[EmojiChess.symbols.menu.newGame + ' New Game']: Menu.plNewGame,
