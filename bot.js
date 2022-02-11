@@ -13,10 +13,10 @@ class Bot {
 	}
 	
 	static botLevel = [
-		{ emoji: '👶', payload: 'Level|0', depth: 1, skill: 0, subOptimal: 0.35, tunnelVision: 0.5},
-		{ emoji: '👧', payload: 'Level|1', depth: 1, skill: 0, subOptimal: 0.25, tunnelVision: 0.3},
-		{ emoji: '🤓', payload: 'Level|2', depth: 2, skill: 2, subOptimal: 0.15, tunnelVision: 0.1},
-		{ emoji: '🕵️', payload: 'Level|3', depth: 3, skill: 5, subOptimal: 0.05, tunnelVision: 0},
+		{ emoji: '👶', payload: 'Level|0', depth: 1, skill: 0, subOptimal: 0.5, tunnelVision: 0.4},
+		{ emoji: '👧', payload: 'Level|1', depth: 1, skill: 0, subOptimal: 0.35, tunnelVision: 0.3},
+		{ emoji: '🤓', payload: 'Level|2', depth: 2, skill: 2, subOptimal: 0.2, tunnelVision: 0.2},
+		{ emoji: '🕵️', payload: 'Level|3', depth: 3, skill: 5, subOptimal: 0.05, tunnelVision: 0.1},
 		{ emoji: '👴', payload: 'Level|4', depth: 5, skill: 7, subOptimal: 0, tunnelVision: 0},
 		{ emoji: '🧙‍♂️', payload: 'Level|5', depth: 8, skill: 12, subOptimal: 0, tunnelVision: 0},
 		{ emoji: '🐐', payload: 'Level|6', depth: 13, skill: 19, subOptimal: 0, tunnelVision: 0},
@@ -44,7 +44,7 @@ class Bot {
 				// `netValue`: value of the captured piece minus value of the piece used to capture
 				// High netValue generally suggests a preferable move (e.g. capturing a queen with a pawn)
 				// compared to a move with low netValue (e.g. capturing a pawn with a queen)
-				let netValue = Bot.pieceValues[move.captured] - Bot.pieceValues[move.piece]
+				const netValue = Bot.pieceValues[move.captured] - Bot.pieceValues[move.piece];
 				capturesWithValues.push([move, netValue]);
 			}
 		}
@@ -97,6 +97,50 @@ class Bot {
 		return isHanging;
 	}
 	
+	static pieceChasing(fen) {
+		function sortByNetValue(a, b) {
+			return b[1] - a[1];
+		}
+		
+		const game = new Chess(fen);
+		const tempGame = new Chess(fen);
+		
+		let chaseWithValues = [];
+		for (const m of game.moves({ verbose: true })) {
+			if (Bot.isHangingMove(fen, m)) { continue; }
+			
+			tempGame.load(fen);
+			tempGame.move(m.san);
+			const tempFen = tempGame.fen().split(' ');
+			
+			// Pretend the other side did not make a move
+			tempFen[1] = (tempFen[1] === 'w') ? 'b' : 'w';
+			// Reset the en passant square
+			tempFen[3] = '-';
+			
+			const flippedFen = tempFen.join(' ');
+			if (!tempGame.validate_fen(flippedFen).valid) {
+				console.log('ERROR: Invalid fen after flipping color', m.san, flippedFen);
+				continue;
+			}
+			
+			tempGame.load(flippedFen);
+			const tempMoves = tempGame.moves({ square: m.to, verbose: true});
+			for (const t of tempMoves) {
+				if (t.flags.indexOf("c") > -1) {
+					const netValue = pieceValues[t.captured] - pieceValues[m.piece];
+					chaseWithValues.push([m, netValue]);
+				}
+			}
+		}
+		
+		Bot.shuffleArray(chaseWithValues);
+		chaseWithValues.sort(sortByNetValue);
+		const chasingMoves = chaseWithValues.map(c => c[0]);
+		
+		return chasingMoves;
+	}
+	
 	static subOptimalMove(fen, tunnelVisionChance) {
 		// Simulates naive play where checks, captures, or promotions are made even if suboptimal
 		// In addition, probability of `tunnelVisionChance` that the bot plays a random check/capture/promotion
@@ -127,8 +171,12 @@ class Bot {
 					return {from: m.from, to: m.to, promotion: m.promotion};
 				}
 			}
-			return null;
+			// No promotions, captures, or checks available
+			// Look for moves that threaten a capture
+			const chasingMoves = Bot.pieceChasing(fen);
+			if (chasingMoves.length > 0) { return chasingMoves[0]; }
 		}
+		return null;
 	}
 	
 	startEngineMove(fen, senderId, level) {

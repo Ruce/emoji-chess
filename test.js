@@ -28,6 +28,8 @@ const symbols = {
 	}
 }
 
+const pieceValues = { p: 1, b: 3, n: 3, r: 5, q: 9, k: 99 };
+
 function encodeMoves(moves) {
 	// Divides up available moves for a particular piece (knight, bishop, etc.) into a tree
 	// Where each layer of the tree has no more than 12 nodes
@@ -155,9 +157,10 @@ function availableMoves(moves) {
 	return result;
 }
 
-const chess = new Chess(); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-//const chess = new Chess("3qkbnr/pPpppppp/4b3/8/1P1P4/PR1RP3/1N1B1PPP/3QKBN1 w - - 0 1");
+//const chess = new Chess(); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+const chess = new Chess("3qkbnr/pPpppppp/4b3/8/1P1P4/PR1RP3/1N1B1PPP/3QKBN1 w - - 0 1");
 //const chess = new Chess("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4");
+
 
 //while (!chess.game_over()) {
 //	const moves = chess.moves()
@@ -174,35 +177,84 @@ const chess = new Chess(); // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq
 //console.log(availableMoves(chess.moves()));
 
 chess.header('Site', 'EmojiChess', 'Date', '2022-02-08', 'White', 'Player', 'Black', 'Bot');
-const pgn = chess.pgn();
-
 const board = chess.board()
-console.log(chess.moves())
-console.log('--- Start PGN ---')
-console.log(pgn)
-console.log('--- End PGN ---')
-console.log(chess.fen())
-console.log(chess.ascii())
+//console.log(chess.moves({verbose: true}))
+//console.log(chess.fen())
+//console.log(chess.ascii())
 
-const newGame = new Chess();
-let newRes = newGame.load_pgn(pgn + '\n*');
-console.log(newRes);
-console.log(Math.ceil(newGame.history().length / 2));
-newGame.move('e4');
-console.log(Math.ceil(newGame.history().length / 2));
-newGame.move('f6');
-console.log(Math.ceil(newGame.history().length / 2));
-newGame.move('d3');
-console.log(Math.ceil(newGame.history().length / 2));
-newGame.move('g5');
-console.log(Math.ceil(newGame.history().length / 2));
-console.log(newGame.pgn());
-newGame.move('Qh5');
 
-newGame.header('Result', '1-0');
-console.log(newGame.pgn());
-console.log(newGame.history());
+function shuffleArray(arr) {
+	for (let i = arr.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[arr[i], arr[j]] = [arr[j], arr[i]];
+	}
+}
 
+function isHangingMove(prevFen, move) {
+	// Based on position at `prevFen`, return true if `move` will cause the moved piece to be capturable
+	// Moved piece does not necessarily have to be "hanging" to return true,
+	// i.e. true as long as the moved piece can be captured, regardless of whether it is defended
+	// (simulating naive "one-depth" level of analysis)
+	const testGame = new Chess(prevFen);
+	testGame.move(move.san);
+	let newMoves = testGame.moves({ verbose: true });
+	
+	let isHanging = false;
+	for (const m of newMoves) {
+		if (m.to == move.to) {
+			isHanging = true;
+			break;
+		}
+	}
+	
+	return isHanging;
+}
+
+function pieceChasing(fen) {
+	function sortByNetValue(a, b) {
+		return b[1] - a[1];
+	}
+	
+	const game = new Chess(fen);
+	const tempGame = new Chess(fen);
+	
+	let chaseWithValues = [];
+	for (const m of game.moves({ verbose: true })) {
+		if (isHangingMove(fen, m)) { continue; }
+		
+		tempGame.load(fen);
+		tempGame.move(m.san);
+		const tempFen = tempGame.fen().split(' ');
+		
+		// Pretend the other side did not make a move
+		tempFen[1] = (tempFen[1] === 'w') ? 'b' : 'w';
+		// Reset the en passant square
+		tempFen[3] = '-';
+		
+		const flippedFen = tempFen.join(' ');
+		if (!tempGame.validate_fen(flippedFen).valid) {
+			console.log('ERROR: Invalid fen after flipping color', m.san, flippedFen);
+			continue;
+		}
+		
+		tempGame.load(flippedFen);
+		const tempMoves = tempGame.moves({ square: m.to, verbose: true});
+		for (const t of tempMoves) {
+			if (t.flags.indexOf("c") > -1) {
+				const netValue = pieceValues[t.captured] - pieceValues[m.piece];
+				chaseWithValues.push([m, netValue]);
+			}
+		}
+	}
+	
+	shuffleArray(chaseWithValues);
+	chaseWithValues.sort(sortByNetValue);
+	const chase = chaseWithValues.map(c => c[0]);
+	
+	return chase;
+}
+
+console.log(pieceChasing("r3kb1r/pp2p1pp/1qnp1n2/2p2p2/Q3P1b1/2PP1N1P/PP3PP1/RNB1KB1R w KQkq - 0 1"));
 
 
 //console.log('8️⃣🕋🐴🏃🏿👸🏿🤴🏿🏃🏿🐴🕋7️⃣️♟♟️♟️♟️♟️♟️♟️♟️6️⃣⬜⬛⬜⬛⬜⬛⬜⬛5️⃣⬛⬜⬛⬜⬛⬜⬛⬜4️⃣⬜⬛⬜⬛⬜⬛⬜⬛3️⃣⬛⬜⬛⬜⬛⬜⬛⬜2️⃣🕯️🕯️🕯️🕯️🕯️🕯️🕯️🕯️1️⃣🏰🦄🏃🏻👸🏻🤴🏻🏃🏻🦄🏰🏁🇦​🇧​🇨​🇩​🇪​🇫​🇬​🇭')
