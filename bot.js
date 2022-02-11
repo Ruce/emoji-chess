@@ -128,7 +128,7 @@ class Bot {
 			const tempMoves = tempGame.moves({ square: m.to, verbose: true});
 			for (const t of tempMoves) {
 				if (t.flags.indexOf("c") > -1) {
-					const netValue = pieceValues[t.captured] - pieceValues[m.piece];
+					const netValue = Bot.pieceValues[t.captured] - Bot.pieceValues[m.piece];
 					chaseWithValues.push([m, netValue]);
 				}
 			}
